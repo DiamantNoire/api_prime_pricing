@@ -1,3 +1,21 @@
+# Dépendances minimales (strict minimum utilisé par les scripts)
+# - Contient uniquement les paquets effectivement importés dans les scripts
+# - Commentaires en français pour guider les développeurs
+
+# Paquets essentiels (installer via `pip install -r requirements.txt`)
+numpy==1.26.4
+pandas
+scikit-learn
+tqdm
+
+# Remarques :
+# - `pandas` et `scikit-learn` peuvent provenir de builds conda (apparaissent
+#   parfois comme `package @ file://...` dans `pip freeze`). Si vous utilisez
+#   conda, préférez créer l'env via `environment.yml` pour une reproduction exacte.
+# - N'ajoutez ici que les paquets nécessaires à l'exécution des scripts.
+# - Pour enrichir ce fichier automatiquement depuis l'env en retirant
+#   les entrées locales conda :
+#     pip freeze | grep -v "@ file://" > requirements.txt
 # Dépendances minimales pour `dev_build_models` et `prod_api_rest`
 
 # Remarques :
@@ -26,40 +44,3 @@ tqdm
 #     pip install -r requirements.txt
 # - Pour reproduire fidèlement avec `conda` (recommandé si l'origine est conda) :
 #     conda env create -f environment.yml
-
-# Si vous souhaitez, je peux :
-# - tenter de pinner `pandas` / `scikit-learn` à partir
-#   de l'environnement conda, ou
-# - générer directement un `environment.yml` complet et le committer.
-# requirements for `dev_build_models` / `prod_api_rest`
-
-# Notes:
-# - Some packages in the conda environment appear in `pip freeze` as
-#   'package @ file://...'. Those are conda-built wheels and do not expose
-#   a clean 'package==version' in `pip freeze`. For reproducible pinning of
-#   these packages prefer exporting a `environment.yml` via conda (example below).
-# - Standard-library modules (os, sys, json, pickle, datetime, typing, ...) are omitted.
-
-# pinned where available
-numpy==1.26.4
-
-# present in environment but installed as conda-built wheel (file://... in pip freeze)
-# pin manually or use `environment.yml` for exact conda package versions
-pandas
-scikit-learn
-tqdm
-
-# To reproduce with pip-only (best-effort):
-# 1) create a venv and install pinned packages
-#    python -m venv .venv
-#    source .venv/bin/activate
-#    pip install -r requirements.txt
-
-# To reproduce with conda (recommended if you used conda packages):
-# 1) export a conda env from the source machine:
-#    conda env export --name env_MATHS_FINANCE_DS_ML --no-builds > environment.yml
-# 2) create the same env on the target machine:
-#    conda env create -f environment.yml
-
-# If you want me to attempt to pin the `pandas` / `scikit-learn` versions from
-# the conda env, I can add best-effort pins or generate an `environment.yml`.
