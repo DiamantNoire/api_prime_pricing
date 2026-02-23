@@ -1,3 +1,36 @@
+# Dépendances minimales pour `dev_build_models` et `prod_api_rest`
+
+# Remarques :
+# - Certaines entrées de `pip freeze` peuvent apparaître sous la forme
+#   `package @ file://...` lorsque les paquets proviennent de builds conda locaux.
+#   Ces lignes ne se convertissent pas proprement en `package==version` pour pip.
+#   Pour une reproduction exacte de l'environnement, il est recommandé d'utiliser
+#   un `environment.yml` (exemple dans `environment.yml`).
+# - Les modules de la bibliothèque standard (os, sys, json, pickle, datetime, typing, ...)
+#   ne sont pas listés.
+
+# Paquets identifiés par intersection (présents dans le code et dans l'environnement) :
+
+# Épinglé quand disponible
+numpy==1.26.4
+
+# Présents dans l'environnement mais fournis comme wheels conda (à pinner via conda si besoin)
+pandas
+scikit-learn
+tqdm
+
+# Instructions rapides :
+# - Pour reproduire avec `pip` (approche simple) :
+#     python -m venv .venv
+#     source .venv/bin/activate
+#     pip install -r requirements.txt
+# - Pour reproduire fidèlement avec `conda` (recommandé si l'origine est conda) :
+#     conda env create -f environment.yml
+
+# Si vous souhaitez, je peux :
+# - tenter de pinner `pandas` / `scikit-learn` à partir
+#   de l'environnement conda, ou
+# - générer directement un `environment.yml` complet et le committer.
 # requirements for `dev_build_models` / `prod_api_rest`
 
 # Notes:
@@ -6,8 +39,6 @@
 #   a clean 'package==version' in `pip freeze`. For reproducible pinning of
 #   these packages prefer exporting a `environment.yml` via conda (example below).
 # - Standard-library modules (os, sys, json, pickle, datetime, typing, ...) are omitted.
-#
-# Packages used across the codebase and present in the environment (intersection):
 
 # pinned where available
 numpy==1.26.4

@@ -1,0 +1,31 @@
+name: env_MATHS_FINANCE_DS_ML
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - pandas
+  - scikit-learn
+  - scipy
+  - matplotlib
+  - seaborn
+  - tqdm
+  - pip
+  - jupyterlab
+  - pip:
+    - requests==2.32.5
+    - protobuf==6.32.1
+    - PyYAML==6.0.3
+    - yfinance==1.1.0
+    - plotly==5.24.1
+
+# Remarques (FR):
+# - Ce fichier `environment.yml` est une exportation "best-effort" visant à
+#   reproduire l'environnement utilisé. Certains paquets présents dans l'env
+#   d'origine peuvent être fournis par des builds conda locaux et nécessitent
+#   un export direct depuis la machine source :
+#     conda env export --name env_MATHS_FINANCE_DS_ML --no-builds > environment.yml
+# - Après création :
+#     conda env create -f environment.yml
+#     conda activate env_MATHS_FINANCE_DS_ML
