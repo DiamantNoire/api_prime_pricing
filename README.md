@@ -6,8 +6,8 @@ Consignes pour pousser des améliorations depuis ta branche de développement `d
 1) Préparer et committer mes changements sur `dev_charly`
 
 ```bash
-# être sur la branche dev_charly
-git checkout dev_charly
+# être sur la branche dev_ance
+git checkout dev_ance
 
 # vérifier l'état et ajouter toutes les modifications
 git status
@@ -140,8 +140,8 @@ Consignes pour pousser des améliorations depuis ta branche de développement `d
 1) Préparer et committer mes changements sur `dev_charly`
 
 ```bash
-# être sur la branche dev_charly
-git checkout dev_charly
+# être sur la branche dev_ance
+git checkout dev_ance
 
 # vérifier l'état et ajouter toutes les modifications
 git status
