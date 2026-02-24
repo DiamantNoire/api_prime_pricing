@@ -1,9 +1,9 @@
 # api_prime_pricing
 Api pour prédire le prix de la prime en se basant sur la fréquence des accidents et la sévérité.
 
-Consignes pour pousser des améliorations depuis ta branche de développement `dev_charly` vers `main`.
+Consignes pour pousser des améliorations depuis ta branche de développement `dev_serge` vers `main`.
 
-1) Préparer et committer mes changements sur `dev_charly`
+1) Préparer et committer mes changements sur `dev_serge`
 
 ```bash
 # être sur la branche dev_serge
@@ -18,14 +18,14 @@ git commit -m "Description courte de l'amélioration"
 2) Pousser la branche distante (upstream)
 
 ```bash
-git push origin dev_charly
+git push origin dev_serge
 ```
 
 3) Ouvrir une Pull Request (PR) sur GitHub (optionnel via CLI)
 
 ```bash
-# crée une PR de dev_charly vers main
-gh pr create --base main --head dev_charly --title "Titre de la PR" --body "Description détaillée"
+# crée une PR de dev_serge vers main
+gh pr create --base main --head dev_serge --title "Titre de la PR" --body "Description détaillée"
 ```
 
 Si une PR existe déjà, pousser mettra automatiquement à jour la PR ouverte.
@@ -50,15 +50,15 @@ gh pr merge <num> --squash
 gh pr merge <num> --rebase
 ```
 
-6) Après fusion, mettre à jour ta branche locale `dev_charly` depuis `main` pour poursuivre le dev
+6) Après fusion, mettre à jour ta branche locale `dev_serge` depuis `main` pour poursuivre le dev
 
 ```bash
 # récupérer main
 git checkout main
 git pull origin main
 
-# re-créer / synchroniser dev_charly depuis main (optionnel)
-git checkout dev_charly
+# re-créer / synchroniser dev_serge depuis main (optionnel)
+git checkout dev_serge
 git merge main
 # ou si tu veux rebaser
 git rebase main
@@ -116,7 +116,7 @@ pip freeze | grep -v "@ file://" > requirements.txt
 # puis commit
 git add requirements.txt
 git commit -m "Update requirements.txt (trimmed to runtime deps)"
-git push origin dev_charly
+git push origin dev_serge
 ```
 
 Si l'environnement est conda et que vous voulez un export complet :
@@ -125,7 +125,7 @@ Si l'environnement est conda et que vous voulez un export complet :
 conda env export --no-builds > environment.yml
 git add environment.yml
 git commit -m "Add environment.yml (conda environment export)"
-git push origin dev_charly
+git push origin dev_serge
 ```
 
 ---
@@ -135,9 +135,9 @@ Si vous voulez, je peux :
 # api_prime_pricing
 Api pour prédire le prix de la prime en se basant sur la fréquence des accidents et la sévérité.
 
-Consignes pour pousser des améliorations depuis ta branche de développement `dev_charly` vers `main`.
+Consignes pour pousser des améliorations depuis ta branche de développement `dev_serge` vers `main`.
 
-1) Préparer et committer mes changements sur `dev_charly`
+1) Préparer et committer mes changements sur `dev_serge`
 
 ```bash
 # être sur la branche dev_serge
@@ -152,14 +152,14 @@ git commit -m "Description courte de l'amélioration"
 2) Pousser la branche distante (upstream)
 
 ```bash
-git push origin dev_charly
+git push origin dev_serge
 ```
 
 3) Ouvrir une Pull Request (PR) sur GitHub (optionnel via CLI)
 
 ```bash
-# crée une PR de dev_charly vers main
-gh pr create --base main --head dev_charly --title "Titre de la PR" --body "Description détaillée"
+# crée une PR de dev_serge vers main
+gh pr create --base main --head dev_serge --title "Titre de la PR" --body "Description détaillée"
 ```
 
 Si une PR existe déjà, pousser mettra automatiquement à jour la PR ouverte.
@@ -184,15 +184,15 @@ gh pr merge <num> --squash
 gh pr merge <num> --rebase
 ```
 
-6) Après fusion, mettre à jour ta branche locale `dev_charly` depuis `main` pour poursuivre le dev
+6) Après fusion, mettre à jour ta branche locale `dev_serge` depuis `main` pour poursuivre le dev
 
 ```bash
 # récupérer main
 git checkout main
 git pull origin main
 
-# re-créer / synchroniser dev_charly depuis main (optionnel)
-git checkout dev_charly
+# re-créer / synchroniser dev_serge depuis main (optionnel)
+git checkout dev_serge
 git merge main
 # ou si tu veux rebaser
 git rebase main
