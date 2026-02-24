@@ -59,7 +59,23 @@ The key's randomart image is:
 
  - ajout de la clé publique à GitHub
  cat ~/.ssh/ided25519.pub
+- vérif : 
+   ls ~/.ssh/id_ed25519.pub
+   retour: /home/cytech/.ssh/id_ed25519.pub
 
+   Ajout: en cmd 
+      ssh-add ~/.ssh/id_ed25519
+      retour : 
+         Identity added: /home/cytech/.ssh/id_ed25519 (charlyromytanga.cytech@gmail.com)
+
+   Test: ssh -T git@github.com
+   retour: 
+      Hi charlyromytanga! You've successfully authenticated, but GitHub does not provide shell access.
+
+
+
+
+   Version en ligne  
  - IMPORANT 
  Copier la clé qui est afficher: un seul esssai
  Se rendre dans GitHub en ligne pour la coller et la valider
