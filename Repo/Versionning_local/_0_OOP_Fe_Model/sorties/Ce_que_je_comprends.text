@@ -1,0 +1,55 @@
+selected_features sert de liste finale effectivement utilisée par le modèle au moment de fit/predict.
+
+Dans ton cas actuel :
+
+selected_features == selected_features_keep
+donc le modèle est entraîné seulement sur ces colonnes “keep”.
+Rôle de chaque liste :
+
+selected_features_keep : bonnes candidates (stables + utiles).
+selected_features_investigate : à surveiller / retravailler (drift, contribution faible/négative).
+selected_features : liste opérationnelle utilisée par predict (colonnes reindexées dessus).
+Pourquoi garder selected_features si elle est égale à keep ?
+
+pour avoir une variable “runtime” unique que le modèle utilise,
+et garder la flexibilité de changer la stratégie plus tard (ex: inclure une partie des investigate) sans casser predict.
+
+
+
+
+Étape 1 (maintenant): stabiliser la qualité du modèle avec les features actuelles + features “à investiguer”.
+Étape 2: tester des preprocessings ciblés sur ces features (winsorisation, log-transform, cap, binning) et mesurer l’impact sur RMSE valid + drift.
+Étape 3: intégrer quelques features catégorielles (encodage simple d’abord), puis re-comparer.
+Étape 4 (métier): décider du traitement des amount < 0 et amount < 50 comme règle de décision finale.
+Sur tes 2 points métier
+
+amount négatif: utile comme signal de cas extrêmes pendant la phase R&D, mais souvent non acceptable en production → garder pour l’analyse, puis appliquer une règle de sortie (ex: clip à 0) selon validation métier.
+amount < 50: typiquement une décision business (franchise, minimum technique, coût de gestion) → à formaliser comme règle post-modèle ou comme cible transformée selon la stratégie produit.
+Prochaine action concrète
+
+Je peux te préparer un mini protocole expérimental (3 runs max) pour comparer:
+baseline actuelle,
+preprocessing sur features investiguées,
+premières catégorielles,
+
+
+
+Protocole en 3 runs (comparatif)
+
+Baseline (run actuel)
+
+Modèle Amount avec features numériques sélectionnées automatiquement (sans index).
+Pas de preprocessing spécifique sur les features “à investiguer”.
+Métriques collectées : RMSE train/valid, drift, distribution des prédictions test.
+Run avec preprocessing sur features à investiguer
+
+Appliquer un ou plusieurs traitements sur les features “à investiguer” :
+Winsorisation (cap à percentiles extrêmes, ex : 1%/99%)
+Log-transform (pour les variables strictement positives)
+Binning (découpage en classes)
+Refaire le pipeline Amount, collecter les mêmes métriques.
+Run avec ajout de features catégorielles
+
+Sélectionner 1 à 3 variables catégorielles pertinentes (ex : marque, type, région).
+Encoder simplement (ex : one-hot ou ordinal).
+Refaire le pipeline Amount, collecter les mêmes métriques.
