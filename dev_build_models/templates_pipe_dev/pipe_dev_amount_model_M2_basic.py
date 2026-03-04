@@ -24,18 +24,6 @@ if __name__ == "__main__":
     #--------------------- PIPELINE AMOUNT -----------------#
     # =======================================================
     
-    # --- Train/Validation split ---
+    # --- Orchestration
 
-    # --- Feature Engineering Amount  ---
-
-    # --- Prediction   ---
-
-
-    # --- Metrics  ---
-
-    # --- Build artefact full model  ---
-
-    # --- Build metadata  full model  ---
-
-    # --- Save Feature Engineering - full model as pickel 
     pass
