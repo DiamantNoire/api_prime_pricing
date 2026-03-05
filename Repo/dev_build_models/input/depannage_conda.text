@@ -1,3 +1,0 @@
-conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python entrainement_dev.py
-
-conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python test_entrainement_amount_baseline.py
