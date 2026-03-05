@@ -39,7 +39,11 @@ if __name__ == "__main__":
 
     amount_df = run_step('Chargement amount_pred.csv', pd.read_csv, AMOUNT_PRED_PATH)
     amount_df_copie = run_step('Copie Amount pour traitement', lambda df: df.copy(), amount_df)
+<<<<<<< HEAD
 
+=======
+    # Sauvegarde de la prédiction finale pour la soumission Kaggle
+>>>>>>> d9632c7 (clean)
     submission_df = pd.DataFrame({
         'index': amount_df_copie['index'],
         'pred':  amount_df_copie['amount_pred']* freq_df['frequence_predite']

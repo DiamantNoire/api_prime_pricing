@@ -1,0 +1,24 @@
+name: env_prime_pricing
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Version de Python recommandée
+  - python=3.11
+
+  # Dépendances strictement nécessaires aux scripts du dépôt
+  - numpy=1.26.4
+  - pandas
+  - scikit-learn
+  - tqdm
+
+  # Remarques :
+  # - Ce fichier est volontairement minimal : il installe uniquement les paquets
+  #   réellement importés dans les scripts (`dev_build_models` et `prod_api_rest`).
+  # - Ne sont PAS inclus ici des paquets optionnels ou lourds (ex. tensorflow,
+  #   xgboost, lightgbm, catboost, mlflow, jupyterlab, pyside6, pyarrow). Si un
+  #   développeur a besoin d'un de ces paquets, il peut l'ajouter localement ou
+  #   créer une variante de l'environnement (ex. `environment_full.yml`).
+  # - Pour reproduire fidèlement l'env exact de développement (incluant builds
+  #   conda locaux), préférez exporter depuis la machine source :
+  #     conda env export --name env_MATHS_FINANCE_DS_ML --no-builds > environment_exported.yml
