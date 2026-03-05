@@ -22,7 +22,7 @@ if __name__ == "__main__":
     #-------- CHARGEMENT DES DONNEES -------------#
     # =============================================
     DATA_DIR = os.path.dirname(__file__)
-    FREQ_PRED_PATH = os.path.join(DATA_DIR, 'sorties/pour_kaggle/Freq/predictions_frequence_poisson.csv')
+    FREQ_PRED_PATH = os.path.join(DATA_DIR, 'sorties/pour_kaggle/Freq/pred_freq.csv')
     AMOUNT_PRED_PATH = os.path.join(DATA_DIR, 'sorties/pour_kaggle/Amount/pred_amount.csv')
 
     # =======================================================
@@ -39,14 +39,10 @@ if __name__ == "__main__":
 
     amount_df = run_step('Chargement amount_pred.csv', pd.read_csv, AMOUNT_PRED_PATH)
     amount_df_copie = run_step('Copie Amount pour traitement', lambda df: df.copy(), amount_df)
-<<<<<<< HEAD
-
-=======
     # Sauvegarde de la prédiction finale pour la soumission Kaggle
->>>>>>> d9632c7 (clean)
     submission_df = pd.DataFrame({
         'index': amount_df_copie['index'],
-        'pred':  amount_df_copie['amount_pred']* freq_df['frequence_predite']
+        'pred':  amount_df_copie['amount_pred']* freq_df['freq_pred']
     })
     submission_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Final_pred_for_submit/prime_prediction.csv'), index=False)
 

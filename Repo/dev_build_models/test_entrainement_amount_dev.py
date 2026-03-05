@@ -81,12 +81,28 @@ if __name__ == "__main__":
              fit_process_nan_remover=True, 
              transform_process_nan_remover=True, 
              threshold=0.9,
-             transform_remove_zero_target=True)
+             transform_remove_zero_target=True,
+             transform_preprocessing_null_target=True,
+             transform_remove_null_target=True,
+             preprocessing_map=None,
+             categorical_features=['marque_vehicule', 'modele_vehicule'],
+             alpha=20.0,
+             min_count=5,
+             per_col_min_count={'modele_vehicule': 20},
+             per_col_top_k=None,
+             noise_during_fit=True,
+             noise_std=0.01,
+             do_standardize=False,
+             clip_pct=(0.01, 0.99))
     
-    run_step('fit du feature engineer Amount', 
+    run_step('fit du feature engineer Amount sur train', 
              fe_amount.fit, 
              X=X_train,
              y=y_train)
+    run_step('fit du feature engineer Amount sur valid', 
+             fe_amount.fit, 
+             X=X_valid,
+             y=y_valid)
     
     X_train_transfomed = run_step('transform du feature engineer Amount sur train', 
                                   fe_amount.transform,

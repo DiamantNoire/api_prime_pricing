@@ -75,12 +75,25 @@ if __name__ == "__main__":
     
 
     # --- Feature Engineering Freq  ---
-    fe_freq = Feature_Engineer_Freq()
+    fe_freq = Feature_Engineer_Freq(freq_process=Freq_Preprocessing())
     run_step('Construction du feature engineer Freq', 
              fe_freq.build_feature_engineer, 
              fit_process_nan_remover=True, 
              transform_process_nan_remover=True, 
-             threshold=0.9)
+             transform_remove_zero_target=True,
+             threshold=0.9,
+             transform_preprocessing_null_target=True,
+             transform_remove_null_target=True,
+             preprocessing_map=None,
+             categorical_features=['marque_vehicule', 'modele_vehicule'],
+             alpha=20.0,
+             min_count=5,
+             per_col_min_count={'modele_vehicule': 20},
+             per_col_top_k=None,
+             noise_during_fit=True,
+             noise_std=0.01,
+             do_standardize=False,
+             clip_pct=(0.01, 0.99))
 
     run_step('fit du feature engineer Freq', 
             fe_freq.fit, 
@@ -104,6 +117,16 @@ if __name__ == "__main__":
     model_freq = Model_Prediction_Freq()
     metrics_freq = {}
     model_freq.fit(X_train_transfomed, y_train)
+    # Prédiction sur le jeu de test
+    y_test_pred = run_step('Prédiction du modèle Freq sur test',
+                           model_freq.predict,
+                           X_test_transfomed)
+
+    # Évaluation sur train et valid
+    metrics_freq_train = run_step('Évaluation du modèle de prédiction Freq sur train',
+                                  model_freq.metrics,
+                                  X=X_train_transfomed,
+                                  y=y_train)
     metrics_freq = run_step('Évaluation du modèle de prédiction Freq',
                             model_freq.metrics,
                             X=X_valid_transfomed,
@@ -126,7 +149,7 @@ if __name__ == "__main__":
                           y_train,
                           n_repeats=5,
                           random_state=42,
-                          scoring='accuracy')
+                          scoring='neg_mean_squared_error')
 
     perm_valid = run_step('Permutation importance valid (Freq)',
                           permutation_importance,
@@ -135,7 +158,7 @@ if __name__ == "__main__":
                           y_valid,
                           n_repeats=5,
                           random_state=42,
-                          scoring='accuracy')
+                          scoring='neg_mean_squared_error')
 
     contribution_drift_df = pd.DataFrame({
         'feature': selected_features,
@@ -162,8 +185,11 @@ if __name__ == "__main__":
     metadata_freq = {
         "target": TARGET_FREQ,
         "created_at": datetime.now().isoformat(),
+        "metrics_train": {
+            "RMSE": metrics_freq_train.get("RMSE"),
+        },
         "metrics_valid": {
-            "accuracy": metrics_freq.get("accuracy"),
+            "RMSE": metrics_freq.get("RMSE"),
         },
         "selected_features": selected_features,
         "selected_features_keep": selected_features_keep,
@@ -187,3 +213,9 @@ if __name__ == "__main__":
     print("\n[METADATA PIPELINE FREQ]")
     print(metadata_freq_loaded)
 
+    # Sauvegarde des prédictions de test pour la soumission finale
+    freq_df = pd.DataFrame({
+        'index': df_test_copie['index'],
+        'freq_pred': y_test_pred 
+    })
+    freq_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Freq/pred_freq.csv'), index=False)
