@@ -231,4 +231,8 @@ if __name__ == "__main__":
     print("\n[METADATA PIPELINE AMOUNT]")
     print(metadata_amount_loaded)
 
-    # --- Pipeline Amount ---
+    amount_df = pd.DataFrame({
+        'index': df_test_copie['index'],
+        'amount_pred': y_test_pred 
+    })
+    amount_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Amount/pred_amount.csv'), index=False)

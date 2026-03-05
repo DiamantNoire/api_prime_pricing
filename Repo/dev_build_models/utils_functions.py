@@ -20,6 +20,13 @@ from typing import Any, Dict, List, Tuple, Optional
 # --- Scientific stack ---
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+from xgboost import XGBRegressor
+# from lightgbm import LGBMRegressor
+# from catboost import CatBoostRegressor
 # --- Scikit-learn ---
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.datasets import make_regression
@@ -428,6 +435,17 @@ class Amount_Preprocessing:
         if target_col in df.columns:
             return df[df[target_col] != 0].copy()
         return df
+    def transform_remove_null_target(self, df, target_col='montant_sinistre'):
+        """Retire les lignes où la ou les colonnes cibles (target_col) sont nulles (NaN)."""
+        if isinstance(target_col, list):
+            for col in target_col:
+                if col in df.columns:
+                    df = df[df[col].notnull()]
+            return df.copy()
+        elif isinstance(target_col, str):
+            if target_col in df.columns:
+                return df[df[target_col].notnull()].copy()
+        return df
     def set_categorical_features(self, categorical_features):
         self.categorical_features = categorical_features
 
@@ -475,7 +493,7 @@ class Amount_Preprocessing:
 
     def _fit_preprocess_NanRemover(self, df:pd.DataFrame, 
                                    columns_to_remove:List[str], 
-                                   threshold:Optional[float]=0.5) -> List[str]:
+                                   threshold:Optional[float]=0.9) -> List[str]:
         """Identifie les colonnes à supprimer en fonction du pourcentage de valeurs manquantes."""
         columns_to_remove = [
             col for col in df.columns if df[col].isna().mean() > threshold
@@ -503,13 +521,16 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
                                transform_remove_zero_target: Optional[bool] = True,
                                threshold: Optional[float] = 0.9,
                                preprocessing_map: Optional[dict] = None,
-                               categorical_features: Optional[list] = None):
+                               categorical_features: Optional[list] = None,
+                               transform_remove_null_target: Optional[bool] = True):
         """Booking des preprocessing pour fit, transform, suppression des zéros et features catégorielles."""
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
             "transform_remove_zero_target_key": transform_remove_zero_target,
-            "threshold_key": threshold}
+            "transform_remove_null_target_key": transform_remove_null_target,
+            "threshold_key": threshold
+        }
         if preprocessing_map:
             self.preprocessing_map = preprocessing_map
             self.amount_process.set_preprocessing_map(preprocessing_map)
@@ -522,13 +543,16 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
             self.columns_to_remove = self.amount_process._fit_preprocess_NanRemover(X, 
                                                                                     self.columns_to_remove, 
                                                                                     self.booking_applied.get("threshold_key", 0.9))
+
         return self
 
     def transform(self, X:pd.DataFrame, y:pd.Series=None):
         if self.booking_applied.get("transform_remove_zero_target_key", False):
             X = self.amount_process.transform_remove_zero_target(X)
+        if self.booking_applied.get("transform_remove_null_target_key", False):
+            X = self.amount_process.transform_remove_null_target(X)
         if self.booking_applied.get("transform_process_nan_remover_key", False):
-            X = self.amount_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
+            X = self.amount_process.transform_remove_null_target(X, self.columns_to_remove)
         if self.preprocessing_map:
             X = self.amount_process.apply_preprocessing(X)
         return X
@@ -604,17 +628,17 @@ class Model_Prediction_Amount(BaseEstimator):
 
         # Ajout : support d'un dictionnaire {nom: modèle}
         if models is None:
-            self.models_ = {"LinearRegression": LinearRegression(),
-                            "Ridge": Ridge(),
-                            "Lasso": Lasso(),
-                            "ElasticNet": ElasticNet(),
-                            "RandomForest": RandomForestRegressor(),
-                            "GBR": GradientBoostingRegressor(),
-                            "SVR": SVR(),
-                            "KNN": KNeighborsRegressor(),
-                            # "XGBoost": XGBRegressor(),
+            self.models_ = {#"LinearRegression": LinearRegression(),
+                            #"Ridge": Ridge(),
+                            #"Lasso": Lasso(),
+                            #"ElasticNet": ElasticNet(),
+                            #"RandomForest": RandomForestRegressor(),
+                            #"GBR": GradientBoostingRegressor(),
+                            #"SVR": SVR(),
+                            #"KNN": KNeighborsRegressor(),
+                            "XGBoost": XGBRegressor(),
                             # "LightGBM": LGBMRegressor(),
-                            # "CatBoost": CatBoostRegressor(),  
+                            #"CatBoost": CatBoostRegressor(),
             }
         elif isinstance(models, dict):
             self.models_ = models
