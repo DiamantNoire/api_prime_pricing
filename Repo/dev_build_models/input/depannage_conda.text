@@ -1,0 +1,15 @@
+conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python entrainement_dev.py
+
+conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python test_entrainement_amount_baseline.py
+
+
+
+Pour la présentation !: 
+Visualiser la distribution des cibles (montant_sinistre et nombre_sinistre) pour chaque modalité de marque_vehicule et modele_vehicule.
+
+Utilise des boxplots, histogrammes, ou des statistiques descriptives (moyenne, médiane, quartiles, min, max, variance).
+Vérifier la normalité et l’homogénéité des variances (par exemple avec le test de Shapiro-Wilk pour la normalité, Levene pour les variances).
+
+Analyser les effectifs (nombre d’observations par modalité) pour éviter les groupes trop petits.
+
+Cela te permettra de choisir le test le plus adapté (ANOVA, Kruskal-Wallis, permutation, chi²) et d’interpréter correctement les résultats.
