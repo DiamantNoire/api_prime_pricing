@@ -204,3 +204,4 @@ Remarques et bonnes pratiques
 - Pour éviter les pertes : fais des commits atomiques et pushes fréquents.
 - En cas de conflit lors du merge/rebase, résous localement puis `git add` + `git rebase --continue` ou `git commit` selon la stratégie.
 
+
