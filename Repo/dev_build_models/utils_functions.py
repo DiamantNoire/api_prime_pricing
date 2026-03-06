@@ -1014,10 +1014,30 @@ class Model_Prediction_Freq(BaseEstimator):
         y_pred = self.predict(X)
         mse = mean_squared_error(y, y_pred)
         rmse = float(np.sqrt(mse))
-        return {
+        # Lecture des scores KFold
+        kfold_scores = getattr(self, 'kfold_scores_', None)
+        # Ajout métriques sur la prédiction binaire
+        from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+        acc = accuracy_score(y, y_pred)
+        recall = recall_score(y, y_pred, zero_division=0)
+        precision = precision_score(y, y_pred, zero_division=0)
+        f1 = f1_score(y, y_pred, zero_division=0)
+        result = {
             'MSE': float(mse),
-            'RMSE': float(rmse)
+            'RMSE': float(rmse),
+            'accuracy': float(acc),
+            'recall': float(recall),
+            'precision': float(precision),
+            'f1': float(f1),
+            'mean_pred': float(np.mean(y_pred)),
+            'min_pred': float(np.min(y_pred)),
+            'max_pred': float(np.max(y_pred))
         }
+        if kfold_scores is not None:
+            result['KFold_MSE'] = kfold_scores
+            result['KFold_MSE_mean'] = float(np.mean(kfold_scores))
+            result['KFold_MSE_std'] = float(np.std(kfold_scores))
+        return result
 
     def save_model(self, model, filepath: str, metadata: Optional[Dict[str, Any]] = None):
         try:
@@ -2079,23 +2099,20 @@ class Model_Prediction_Amount(BaseEstimator):
         return self.selected_features_investigate_
 
     def metrics(self, X:pd.DataFrame, y:pd.Series, model_name: str = None, kfold=None) -> Dict[str, float]:
-        """Évalue les performances du modèle en utilisant différentes métriques.
-
-        Args:
-            X (pd.DataFrame): Les données d'entrée pour l'évaluation.
-            y (pd.Series): Les étiquettes réelles correspondantes aux données d'entrée.
-            model_name (str): Nom du modèle à utiliser (par défaut None = modèle principal)
-
-        Returns:
-            Dict[str, float]: Un dictionnaire contenant les valeurs des métriques d'évaluation.
-        """
         y_pred = self.predict(X, model_name=model_name, kfold=kfold)
         mse = mean_squared_error(y, y_pred)
         rmse = np.sqrt(mse)
-        return {
+        # Lecture des scores KFold
+        kfold_scores = getattr(self, 'kfold_scores_', None)
+        result = {
             'MSE': mse,
             'RMSE': rmse
         }
+        if kfold_scores is not None:
+            result['KFold_MSE'] = kfold_scores
+            result['KFold_MSE_mean'] = float(np.mean(kfold_scores))
+            result['KFold_MSE_std'] = float(np.std(kfold_scores))
+        return result
     
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
         try:

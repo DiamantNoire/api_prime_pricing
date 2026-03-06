@@ -121,13 +121,16 @@ if __name__ == "__main__":
     y_test_pred_proba = run_step('Prédiction du modèle Freq sur test',
                                  model_freq.predict_proba,
                                  X_test_transfomed)
-    # On prend la colonne de la classe 1
-    seuil = 0.2  # Ajustez ici le seuil souhaité
+
+    # Affichage des métriques sur la prédiction du test
     if hasattr(y_test_pred_proba, 'shape') and y_test_pred_proba.shape[1] > 1:
         proba_1 = y_test_pred_proba[:, 1]
     else:
         proba_1 = y_test_pred_proba.ravel()
-    y_test_pred = (proba_1 >= seuil).astype(int)
+    print("\n[METRICS PREDICTION TEST FREQ]")
+    print(f"mean_pred: {proba_1.mean():.4f}, min_pred: {proba_1.min():.4f}, max_pred: {proba_1.max():.4f}")
+    print(f"Distribution: {pd.Series(proba_1).describe()}")
+
 
     # Évaluation sur train et valid
     metrics_freq_train = run_step('Évaluation du modèle de prédiction Freq sur train',
@@ -198,6 +201,12 @@ if __name__ == "__main__":
         "metrics_valid": {
             "RMSE": metrics_freq.get("RMSE"),
         },
+        "metrics_pred_test": {
+            "mean_pred": float(proba_1.mean()),
+            "min_pred": float(proba_1.min()),
+            "max_pred": float(proba_1.max()),
+            "describe": pd.Series(proba_1).describe().to_dict()
+        },
         "selected_features": selected_features,
         "selected_features_keep": selected_features_keep,
         "selected_features_investigate": selected_features_investigate,
@@ -221,8 +230,13 @@ if __name__ == "__main__":
     print(metadata_freq_loaded)
 
     # Sauvegarde des prédictions de test pour la soumission finale
+    # Sauvegarde la probabilité de la classe 1 (sans seuil)
+    if hasattr(y_test_pred_proba, 'shape') and y_test_pred_proba.shape[1] > 1:
+        proba_1 = y_test_pred_proba[:, 1]
+    else:
+        proba_1 = y_test_pred_proba.ravel()
     freq_df = pd.DataFrame({
         'index': df_test_copie['index'],
-        'freq_pred': y_test_pred 
+        'freq_pred': proba_1
     })
     freq_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Freq/pred_freq.csv'), index=False)
