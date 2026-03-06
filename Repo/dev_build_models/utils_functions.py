@@ -23,11 +23,10 @@ from typing import Any, Dict, List, Tuple, Optional
 # --- Scientific stack ---
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.svm import SVR
-from sklearn.neighbors import KNeighborsRegressor
-from xgboost import XGBRegressor
+from sklearn.ensemble import  GradientBoostingRegressor
+from xgboost import XGBClassifier, XGBRegressor
+from sklearn.model_selection import GridSearchCV
+
 # from lightgbm import LGBMRegressor
 # from catboost import CatBoostRegressor
 # --- Scikit-learn ---
@@ -445,7 +444,7 @@ class Feature_Engineer_Freq(BaseEstimator, TransformerMixin):
                                clip_pct: Optional[tuple] = (0.01, 0.99),
                                transform_remove_null_target: Optional[bool] = True,
                                transform_preprocessing_null_target: Optional[bool] = False):
-        """Booking des preprocessing pour fit et transform."""
+        print("[build_feature_engineer] Initialisation du booking des preprocessing...")
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
@@ -453,29 +452,268 @@ class Feature_Engineer_Freq(BaseEstimator, TransformerMixin):
             "transform_remove_null_target_key": transform_remove_null_target,
             "transform_preprocessing_null_target_key": transform_preprocessing_null_target,
             "threshold_key": threshold}
-        if preprocessing_map:
+        print(f"[build_feature_engineer] Booking appliqué : {self.booking_applied}")
+        if preprocessing_map is not None:
+            print(f"[build_feature_engineer] Mise à jour preprocessing_map : {preprocessing_map}")
             self.preprocessing_map = preprocessing_map
             self.freq_process.set_preprocessing_map(preprocessing_map)
-        if categorical_features:
+        if categorical_features is not None:
+            print(f"[build_feature_engineer] Mise à jour categorical_features : {categorical_features}")
             self.categorical_features = categorical_features
             self.freq_process.set_categorical_features(categorical_features)
-        # paramètres pour target-encoding
         self.alpha = float(alpha)
         self.min_count = int(min_count)
-        # regularisation / robustesse
         self.noise_during_fit = bool(noise_during_fit)
         self.noise_std = float(noise_std)
-        # post-processing des encodages
         self.do_standardize = bool(do_standardize)
         try:
             self.clip_pct = (float(clip_pct[0]), float(clip_pct[1]))
         except Exception:
             self.clip_pct = (0.01, 0.99)
-        # per-column overrides
         self.per_col_min_count = per_col_min_count or {}
         self.per_col_top_k = per_col_top_k or {}
+        print("[build_feature_engineer] Initialisation terminée.")
 
-    def fit(self, X:pd.DataFrame, y:pd.Series=None): 
+    def _compute_tschuprow_t(self, series_x: pd.Series, y: pd.Series, n_bins: int = 10, min_count: int = 5) -> float:
+        """Calcule Tschuprow's T entre une variable explicative numérique (après binning) et la cible quantitative.
+
+        On discretise la variable explicative et la cible en quantiles (ou bins) puis on calcule
+        la statistique chi2 sur la table de contingence et on en déduit Tschuprow's T.
+        Retourne NaN si calcul non possible.
+        """
+        try:
+            import pandas as _pd
+            import numpy as _np
+            from scipy.stats import chi2_contingency
+        except Exception:
+            return float('nan')
+
+        if series_x is None or y is None:
+            return float('nan')
+        try:
+            sx = series_x.dropna()
+            sy = y.loc[sx.index]
+        except Exception:
+            sx = series_x.copy()
+            sy = y.copy()
+
+        if sx.shape[0] < int(min_count):
+            return float('nan')
+
+        # bin both series using quantiles for robustness
+        try:
+            bx = _pd.qcut(sx.rank(method='first'), q=int(n_bins), labels=False, duplicates='drop')
+        except Exception:
+            try:
+                bx = _pd.cut(sx, bins=int(n_bins), labels=False)
+            except Exception:
+                return float('nan')
+        try:
+            by = _pd.qcut(sy.rank(method='first'), q=int(n_bins), labels=False, duplicates='drop')
+        except Exception:
+            try:
+                by = _pd.cut(sy, bins=int(n_bins), labels=False)
+            except Exception:
+                return float('nan')
+
+        df = _pd.DataFrame({'bx': bx, 'by': by}).dropna()
+        if df.shape[0] < int(min_count):
+            return float('nan')
+        ct = _pd.crosstab(df['bx'], df['by'])
+        if ct.shape[0] < 2 or ct.shape[1] < 2:
+            return float('nan')
+        try:
+            chi2, p, dof, expected = chi2_contingency(ct)
+        except Exception:
+            return float('nan')
+        n = ct.values.sum()
+        r, c = ct.shape
+        denom = n * _np.sqrt(max(0.0, (r - 1) * (c - 1)))
+        if denom <= 0:
+            return float('nan')
+        T = _np.sqrt(max(0.0, float(chi2) / float(denom)))
+        return float(T)
+
+    def _compute_kruskal_wallis(self, series_cat: pd.Series, y: pd.Series, min_count: int = 5) -> dict:
+        """Calcule le test de Kruskal-Wallis entre une variable catégorielle et la cible quantitative.
+
+        Retourne un dict {'statistic': float, 'pvalue': float} ou NaN si non calculable.
+        """
+        try:
+            import pandas as _pd
+            import numpy as _np
+            from scipy.stats import kruskal
+        except Exception:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+
+        if series_cat is None or y is None:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+
+        df = _pd.DataFrame({'cat': series_cat.fillna('___NaN___').astype(str), 'y': y})
+        counts = df['cat'].value_counts()
+        valid = counts[counts >= int(min_count)].index.tolist()
+        if len(valid) < 2:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+        groups = [df.loc[df['cat'] == k, 'y'].values for k in valid]
+        try:
+            stat, p = kruskal(*groups)
+            return {'statistic': float(stat), 'pvalue': float(p)}
+        except Exception:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+
+    def preselect_features(self, X: pd.DataFrame, y: pd.Series,
+                           top_k_numeric: int = 20,
+                           top_k_categorical: int = 20,
+                           pvalue_threshold: float = 0.05,
+                           n_bins: int = 10,
+                           min_count: int = 5) -> list:
+        """Présélectionne des features en appliquant :
+        - Tschuprow's T pour variables numériques (via binning de la variable et de la cible)
+        - Kruskal-Wallis pour variables catégorielles
+
+        Stocke les listes `preselected_numeric_`, `preselected_categorical_` et `preselected_features_`.
+        Retourne la liste combinée des features présélectionnées.
+        """
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        num_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+        # ignore index column if present
+        num_cols = [c for c in num_cols if c != 'index']
+        cat_cols = [c for c in (self.categorical_features or []) if c in X.columns]
+
+        numeric_scores = {}
+        for col in num_cols:
+            try:
+                if X[col].dropna().shape[0] < int(min_count):
+                    numeric_scores[col] = float('nan')
+                    continue
+                t = self._compute_tschuprow_t(X[col], y, n_bins=n_bins, min_count=min_count)
+                numeric_scores[col] = t
+            except Exception:
+                numeric_scores[col] = float('nan')
+
+        # sort numeric by T (descending), NaN last
+        import numpy as _np
+        sorted_num = sorted(numeric_scores.items(), key=lambda kv: (_np.nan_to_num(kv[1], nan=-1.0)), reverse=True)
+        selected_numeric = [k for k, v in sorted_num if not _np.isnan(v)][:int(top_k_numeric)]
+
+        categorical_scores = {}
+        for col in cat_cols:
+            try:
+                res = self._compute_kruskal_wallis(X[col], y, min_count=min_count)
+                categorical_scores[col] = res
+            except Exception:
+                categorical_scores[col] = {'statistic': float('nan'), 'pvalue': float('nan')}
+
+        # filter by pvalue threshold then sort by statistic descending
+        cat_filtered = {k: v for k, v in categorical_scores.items() if v.get('pvalue') is not None and not _np.isnan(v.get('pvalue')) and v.get('pvalue') <= float(pvalue_threshold)}
+        sorted_cat = sorted(cat_filtered.items(), key=lambda kv: (kv[1]['pvalue'], -kv[1]['statistic']))
+        selected_categorical = [k for k, v in sorted_cat][:int(top_k_categorical)]
+
+        self.preselected_numeric_ = selected_numeric
+        self.preselected_categorical_ = selected_categorical
+        self.preselected_features_ = selected_numeric + selected_categorical
+        return self.preselected_features_
+
+    def fit(self, X:pd.DataFrame, y:pd.Series=None):
+        print("[fit] Synchronisation preprocessing_map et categorical_features avec freq_process...")
+        if hasattr(self.freq_process, 'set_preprocessing_map') and self.preprocessing_map:
+            print(f"[fit] Mise à jour preprocessing_map dans freq_process : {self.preprocessing_map}")
+            self.freq_process.set_preprocessing_map(self.preprocessing_map)
+        if hasattr(self.freq_process, 'set_categorical_features') and self.categorical_features:
+            print(f"[fit] Mise à jour categorical_features dans freq_process : {self.categorical_features}")
+            self.freq_process.set_categorical_features(self.categorical_features)
+        if self.booking_applied.get("fit_process_nan_remover_key", False):
+            print("[fit] Application du fit_process_nan_remover...")
+            self.columns_to_remove = self.freq_process._fit_preprocess_NanRemover(X, 
+                                                                                  self.columns_to_remove, 
+                                                                                  self.booking_applied.get("threshold_key", 0.9))
+            print(f"[fit] Colonnes à retirer : {self.columns_to_remove}")
+        if isinstance(X, pd.DataFrame):
+            num = X.select_dtypes(include=[np.number])
+            if num.shape[1] > 0:
+                self.fill_values_ = num.median(numeric_only=True).to_dict()
+                print(f"[fit] Valeurs d'imputation calculées : {self.fill_values_}")
+        if y is not None and self.categorical_features:
+            print("[fit] Apprentissage des encodages catégoriels (target-encoding)...")
+            df = X.copy()
+            df = df.reset_index(drop=True)
+            y = y.reset_index(drop=True)
+            global_mean = float(y.mean())
+            cv = 5
+            min_count = int(self.min_count)
+            alpha = float(self.alpha)
+            for col in self.categorical_features:
+                if col not in df.columns:
+                    print(f"[fit] Colonne {col} absente, encodage ignoré.")
+                    continue
+                series = df[col].fillna('___NaN___').astype(str)
+                col_top_k = int(self.per_col_top_k.get(col, 0)) if isinstance(self.per_col_top_k, dict) else 0
+                if col_top_k and col_top_k > 0:
+                    top_vals = series.value_counts().index[:col_top_k].tolist()
+                    series = series.apply(lambda v: v if v in top_vals else 'OTHER')
+                oof_values = pd.Series(index=df.index, dtype=float)
+                rnd = np.random.RandomState(42)
+                kf = KFold(n_splits=cv, shuffle=True, random_state=42)
+                for train_idx, val_idx in kf.split(df):
+                    train_cats = series.iloc[train_idx]
+                    train_y = y.iloc[train_idx]
+                    grp = train_y.groupby(train_cats).mean()
+                    oof_values.iloc[val_idx] = series.iloc[val_idx].map(grp)
+                oof_values = oof_values.fillna(global_mean)
+                counts = series.value_counts()
+                mapping = {}
+                rare_cats = []
+                col_min_count = int(self.per_col_min_count.get(col, min_count)) if isinstance(self.per_col_min_count, dict) else int(min_count)
+                for cat, cnt in counts.items():
+                    if cnt < col_min_count:
+                        rare_cats.append(str(cat))
+                    else:
+                        cat_mean = float(y[series == cat].mean()) if cnt > 0 else global_mean
+                        smooth = (cnt * cat_mean + alpha * global_mean) / (cnt + alpha)
+                        if self.noise_during_fit:
+                            noise = rnd.normal(loc=0.0, scale=(self.noise_std * float(y.std() if float(y.std())>0 else 1.0)))
+                            smooth = float(smooth) + float(noise)
+                        mapping[str(cat)] = float(smooth)
+                other_mean = None
+                if len(rare_cats) > 0:
+                    mask_rare = series.isin(rare_cats)
+                    try:
+                        other_mean = float(y[mask_rare].mean())
+                    except Exception:
+                        other_mean = None
+                if other_mean is None or np.isnan(other_mean):
+                    other_mean = global_mean
+                other_smooth = float((len(rare_cats) * other_mean + alpha * global_mean) / (len(rare_cats) + alpha)) if len(rare_cats) > 0 else float(global_mean)
+                if self.noise_during_fit:
+                    noise = rnd.normal(loc=0.0, scale=(self.noise_std * float(y.std() if float(y.std())>0 else 1.0)))
+                    other_smooth = other_smooth + float(noise)
+                mapping['OTHER'] = float(other_smooth)
+                map_vals = np.array(list(mapping.values()), dtype=float)
+                try:
+                    low, high = np.percentile(map_vals, [100.0 * self.clip_pct[0], 100.0 * self.clip_pct[1]])
+                except Exception:
+                    low, high = (np.min(map_vals), np.max(map_vals))
+                for k in list(mapping.keys()):
+                    mapping[k] = float(np.clip(mapping[k], low, high))
+                default_val = float(np.clip(global_mean, low, high))
+                enc_mean = float(np.mean(list(mapping.values()))) if len(mapping) > 0 else float(default_val)
+                enc_std = float(np.std(list(mapping.values()))) if len(mapping) > 0 else 1.0
+                if self.do_standardize and enc_std != 0:
+                    for k in list(mapping.keys()):
+                        mapping[k] = float((mapping[k] - enc_mean) / enc_std)
+                    default_val = float((default_val - enc_mean) / enc_std)
+                self.categ_mapping_[col] = {
+                    'mapping': mapping,
+                    'default': default_val,
+                    'alpha': float(alpha),
+                    'min_count': int(col_min_count),
+                    'rare_categories': rare_cats,
+                }
+                self.enc_stats_[col] = {'mean': enc_mean, 'std': enc_std, 'clip_bounds': (float(low), float(high))}
+                print(f"[fit] Encodage target-encoding appris pour {col}.")
+        print("[fit] Fin du fit.")
+        return self
         """Entraîne les différentes étapes de feature engineering sur les données d'entraînement."""
         if self.booking_applied.get("fit_process_nan_remover_key", False):
             self.columns_to_remove = self.freq_process._fit_preprocess_NanRemover(X, 
@@ -576,31 +814,43 @@ class Feature_Engineer_Freq(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X:pd.DataFrame, y:pd.Series=None):
+        print("[transform] Vérification et application preprocessing_map et categorical_features...")
+        if hasattr(self.freq_process, 'set_preprocessing_map') and self.preprocessing_map:
+            print(f"[transform] Mise à jour preprocessing_map dans freq_process : {self.preprocessing_map}")
+            self.freq_process.set_preprocessing_map(self.preprocessing_map)
+        if hasattr(self.freq_process, 'set_categorical_features') and self.categorical_features:
+            print(f"[transform] Mise à jour categorical_features dans freq_process : {self.categorical_features}")
+            self.freq_process.set_categorical_features(self.categorical_features)
         if self.booking_applied.get("transform_remove_zero_target_key", False):
+            print("[transform] Suppression des zéros sur la cible...")
             X = self.freq_process.transform_remove_zero_target(X)
         if self.booking_applied.get("transform_remove_null_target_key", False):
+            print("[transform] Suppression des null sur la cible...")
             X = self.freq_process.transform_remove_null_target(X)
         if self.booking_applied.get("transform_preprocessing_null_target_key", False):
+            print("[transform] Application preprocessing null target...")
             X = self.freq_process._transform_preprocessing_null_target(X)
         if self.booking_applied.get("transform_process_nan_remover_key", False):
+            print("[transform] Suppression des NaN selon booking...")
             X = self.freq_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
         if self.preprocessing_map:
+            print("[transform] Application preprocessing_map...")
             X = self.freq_process.apply_preprocessing(X)
         X = X.copy()
         if hasattr(self, 'fill_values_') and isinstance(self.fill_values_, dict):
+            print(f"[transform] Imputation des valeurs manquantes : {self.fill_values_}")
             X = X.fillna(self.fill_values_)
-
-        # Appliquer encodage target-encoding appris
         for col in self.categorical_features:
             if col not in X.columns:
+                print(f"[transform] Colonne {col} absente, encodage ignoré.")
                 continue
             info = self.categ_mapping_.get(col)
             if not info:
+                print(f"[transform] Pas de mapping pour {col}, fallback label encoding.")
                 X[col] = X[col].astype('category').cat.codes
                 continue
             mapping = info.get('mapping', {})
             default = info.get('default', 0.0)
-
             def _map_val(v):
                 k = str(v) if v is not None else '___NaN___'
                 if k in mapping:
@@ -608,9 +858,9 @@ class Feature_Engineer_Freq(BaseEstimator, TransformerMixin):
                 if 'OTHER' in mapping:
                     return mapping['OTHER']
                 return default
-
             X[col] = X[col].fillna('___NaN___').apply(_map_val)
-
+            print(f"[transform] Encodage appliqué sur {col}.")
+        print("[transform] Fin du transform.")
         return X
 
     def predict(self):
@@ -688,108 +938,51 @@ class Model_Prediction_Freq(BaseEstimator):
         self.contribution_drift_df_ = pd.DataFrame()
         self.history_ = []
 
-        # Utiliser le même estimateur que pour Amount (XGBoost regressor)
+        # Utiliser le même estimateur que pour Amount (XGBoost classifier)
         try:
-            self.model_ = XGBRegressor(random_state=self.random_state)
+            self.model_ = XGBClassifier(random_state=self.random_state)
             self.model_name_ = 'XGBoost'
         except Exception:
             # fallback minimal
             self.model_ = LogisticRegression(max_iter=self.max_iter, random_state=self.random_state)
             self.model_name_ = 'LogisticRegression'
 
-    def fit(self, X: pd.DataFrame, y: pd.Series):
+    def fit(self, X: pd.DataFrame, y: pd.Series, fe_freq=None):
+        """
+        Entraîne le modèle sur les features présélectionnées par le feature engineer.
+        """
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
-
         X_num = X.select_dtypes(include=[np.number]).copy()
         self.numeric_features_ = list(X_num.columns)
         self.fill_values_ = X_num.median(numeric_only=True).to_dict()
         X_num = X_num.fillna(self.fill_values_)
-
         if X_num.shape[1] == 0:
             raise ValueError("Aucune colonne numérique disponible pour entraîner le modèle Freq.")
-
-        stratify_y = y if isinstance(y, pd.Series) and y.nunique() > 1 else None
-        X_train_i, X_valid_i, y_train_i, y_valid_i = train_test_split(
-            X_num,
-            y,
-            test_size=0.2,
-            random_state=self.random_state,
-            shuffle=True,
-            stratify=stratify_y,
-        )
-
-        # Utiliser l'estimateur unique (XGBoost) pour l'importance et l'entraînement final
-        chosen_name = self.model_name_
-        chosen_model = self.model_
-
-        # Entraîner le modèle sur le split train avant d'évaluer l'importance
-        run_internal_step("Fit model for importance", chosen_model.fit, X_train_i, y_train_i)
-
-        perm_train = run_internal_step(
-            "Permutation importance train",
-            permutation_importance,
-            chosen_model,
-            X_train_i,
-            y_train_i,
-            n_repeats=self.n_repeats_importance,
-            random_state=self.random_state,
-            scoring=self.scoring,
-        )
-        perm_valid = run_internal_step(
-            "Permutation importance valid",
-            permutation_importance,
-            chosen_model,
-            X_valid_i,
-            y_valid_i,
-            n_repeats=self.n_repeats_importance,
-            random_state=self.random_state,
-            scoring=self.scoring,
-        )
-
-        contribution_drift_df = pd.DataFrame({
-            'feature': self.numeric_features_,
-            'contribution_train': perm_train.importances_mean,
-            'contribution_valid': perm_valid.importances_mean,
-        })
-        contribution_drift_df['drift_abs'] = (
-            contribution_drift_df['contribution_train'] - contribution_drift_df['contribution_valid']
-        ).abs()
-        contribution_drift_df['drift_ratio_train_over_valid'] = (
-            contribution_drift_df['contribution_train'].abs() + 1e-9
-        ) / (contribution_drift_df['contribution_valid'].abs() + 1e-9)
-
-        keep_mask = (
-            (contribution_drift_df['contribution_valid'] > 0)
-            & (contribution_drift_df['drift_ratio_train_over_valid'] >= self.ratio_keep_min)
-            & (contribution_drift_df['drift_ratio_train_over_valid'] <= self.ratio_keep_max)
-        )
-
-        self.selected_features_keep_ = contribution_drift_df.loc[keep_mask, 'feature'].tolist()
-        self.selected_features_investigate_ = contribution_drift_df.loc[~keep_mask, 'feature'].tolist()
-
-        if len(self.selected_features_keep_) == 0:
-            fallback = contribution_drift_df.loc[
-                contribution_drift_df['contribution_valid'] > 0,
-                'feature'
-            ].tolist()
-            self.selected_features_keep_ = fallback if len(fallback) > 0 else self.numeric_features_
-
-        self.selected_features_ = self.selected_features_keep_.copy()
-        self.contribution_drift_df_ = contribution_drift_df.sort_values('drift_abs', ascending=False)
+        # Utiliser la sélection du feature engineer
+        if fe_freq is not None and hasattr(fe_freq, 'preselected_features_'):
+            selected_features = [f for f in fe_freq.preselected_features_ if f in X_num.columns]
+        else:
+            selected_features = self.numeric_features_
+        self.selected_features_ = selected_features.copy()
+        self.selected_features_keep_ = selected_features.copy()
+        self.selected_features_investigate_ = []
+        self.contribution_drift_df_ = pd.DataFrame()
+        # Ajout KFold cross-validation
+        from sklearn.model_selection import KFold
+        kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
+        scores = []
+        for train_idx, val_idx in kf.split(X_num[selected_features]):
+            X_train, X_val = X_num.iloc[train_idx], X_num.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+            self.model_.fit(X_train[selected_features], y_train)
+            y_pred = self.model_.predict(X_val[selected_features])
+            from sklearn.metrics import mean_squared_error
+            scores.append(mean_squared_error(y_val, y_pred))
+        print(f"[fit] KFold CV scores (MSE): {scores}")
+        # Fit final model sur tout le jeu
+        self.model_.fit(X_num[selected_features], y)
         self.history_ = [(self.selected_features_.copy(), None)]
-
-        # Fit final model on selected features using all data
-        run_internal_step(
-            f"Fit {chosen_name} sur features sélectionnées",
-            chosen_model.fit,
-            X_num[self.selected_features_],
-            y,
-        )
-
-        # Stocker le modèle entraîné
-        self.model_name_ = chosen_name
-        self.model_ = chosen_model
         return self
 
     def predict(self, X: pd.DataFrame):
@@ -827,12 +1020,6 @@ class Model_Prediction_Freq(BaseEstimator):
         }
 
     def save_model(self, model, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        """Sauvegarde le modèle dans un fichier.
-
-        Args:
-            model (Model_Prediction_Freq): Le modèle à sauvegarder.
-            filepath (str): Chemin vers le fichier où sauvegarder le modèle.
-        """
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -842,16 +1029,12 @@ class Model_Prediction_Freq(BaseEstimator):
                 'selected_features_investigate_': self.selected_features_investigate_,
                 'numeric_features_': self.numeric_features_,
                 'fill_values_': self.fill_values_,
-                'contribution_drift_df_': self.contribution_drift_df_.to_dict(orient='records'),
                 'history_': self.history_,
                 'config': {
                     'cv': self.cv,
                     'scoring': self.scoring,
                     'max_features': self.max_features,
                     'random_state': self.random_state,
-                    'ratio_keep_min': self.ratio_keep_min,
-                    'ratio_keep_max': self.ratio_keep_max,
-                    'n_repeats_importance': self.n_repeats_importance,
                     'max_iter': self.max_iter,
                 },
                 'metadata': {
@@ -866,17 +1049,14 @@ class Model_Prediction_Freq(BaseEstimator):
 
     def load_model(self, filepath: str):
         """Charge le modèle depuis un fichier.
-
         Args:
             filepath (str): Chemin vers le fichier contenant le modèle.
-
         Returns:
             Model_Prediction_Freq: Le modèle chargé depuis le fichier.
         """
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
-
             if isinstance(loaded, dict) and 'model_' in loaded:
                 self.model_ = loaded.get('model_', self.model_)
                 self.selected_features_ = loaded.get('selected_features_', self.selected_features_)
@@ -884,20 +1064,14 @@ class Model_Prediction_Freq(BaseEstimator):
                 self.selected_features_investigate_ = loaded.get('selected_features_investigate_', self.selected_features_investigate_)
                 self.numeric_features_ = loaded.get('numeric_features_', self.numeric_features_)
                 self.fill_values_ = loaded.get('fill_values_', self.fill_values_)
-                contribution_drift_records = loaded.get('contribution_drift_df_', [])
-                self.contribution_drift_df_ = pd.DataFrame(contribution_drift_records)
                 self.history_ = loaded.get('history_', self.history_)
                 config = loaded.get('config', {})
                 self.cv = config.get('cv', self.cv)
                 self.scoring = config.get('scoring', self.scoring)
                 self.max_features = config.get('max_features', self.max_features)
                 self.random_state = config.get('random_state', self.random_state)
-                self.ratio_keep_min = config.get('ratio_keep_min', self.ratio_keep_min)
-                self.ratio_keep_max = config.get('ratio_keep_max', self.ratio_keep_max)
-                self.n_repeats_importance = config.get('n_repeats_importance', self.n_repeats_importance)
                 self.max_iter = config.get('max_iter', self.max_iter)
                 return loaded
-
             self.model_ = loaded
             return loaded
         except Exception as e:
@@ -1374,7 +1548,7 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
                                clip_pct: Optional[tuple] = (0.01, 0.99),
                                transform_remove_null_target: Optional[bool] = True,
                                transform_preprocessing_null_target: Optional[bool] = False):
-        """Booking des preprocessing pour fit, transform, suppression des zéros et features catégorielles."""
+        print("[build_feature_engineer] Initialisation du booking des preprocessing...")
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
@@ -1383,38 +1557,175 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
             "transform_preprocessing_null_target_key": transform_preprocessing_null_target,
             "threshold_key": threshold
         }
-        if preprocessing_map:
+        print(f"[build_feature_engineer] Booking appliqué : {self.booking_applied}")
+        if preprocessing_map is not None:
+            print(f"[build_feature_engineer] Mise à jour preprocessing_map : {preprocessing_map}")
             self.preprocessing_map = preprocessing_map
             self.amount_process.set_preprocessing_map(preprocessing_map)
-        if categorical_features:
+        if categorical_features is not None:
+            print(f"[build_feature_engineer] Mise à jour categorical_features : {categorical_features}")
             self.categorical_features = categorical_features
             self.amount_process.set_categorical_features(categorical_features)
-        # paramètres pour target-encoding
         self.alpha = float(alpha)
         self.min_count = int(min_count)
-        # regularisation / robustesse
         self.noise_during_fit = bool(noise_during_fit)
         self.noise_std = float(noise_std)
-        # post-processing des encodages
         self.do_standardize = bool(do_standardize)
         try:
             self.clip_pct = (float(clip_pct[0]), float(clip_pct[1]))
         except Exception:
             self.clip_pct = (0.01, 0.99)
-        # per-column overrides
         self.per_col_min_count = per_col_min_count or {}
         self.per_col_top_k = per_col_top_k or {}
+        print("[build_feature_engineer] Initialisation terminée.")
 
     def fit(self, X:pd.DataFrame, y:pd.Series=None):
+        print("[fit] Synchronisation preprocessing_map et categorical_features avec amount_process...")
+        if hasattr(self.amount_process, 'set_preprocessing_map') and self.preprocessing_map:
+            print(f"[fit] Mise à jour preprocessing_map dans amount_process : {self.preprocessing_map}")
+            self.amount_process.set_preprocessing_map(self.preprocessing_map)
+        if hasattr(self.amount_process, 'set_categorical_features') and self.categorical_features:
+            print(f"[fit] Mise à jour categorical_features dans amount_process : {self.categorical_features}")
+            self.amount_process.set_categorical_features(self.categorical_features)
         if self.booking_applied.get("fit_process_nan_remover_key", False):
+            print("[fit] Application du fit_process_nan_remover...")
             self.columns_to_remove = self.amount_process._fit_preprocess_NanRemover(X, 
                                                                                     self.columns_to_remove, 
                                                                                     self.booking_applied.get("threshold_key", 0.9))
-        # Calcul des valeurs d'imputation pour les colonnes numériques
+            print(f"[fit] Colonnes à retirer : {self.columns_to_remove}")
         if isinstance(X, pd.DataFrame):
             num = X.select_dtypes(include=[np.number])
             if num.shape[1] > 0:
                 self.fill_values_ = num.median(numeric_only=True).to_dict()
+                print(f"[fit] Valeurs d'imputation calculées : {self.fill_values_}")
+        if y is not None:
+            print("[fit] Présélection statistique des features...")
+            try:
+                pre = self.preselect_features(X, y)
+                self.categorical_features_preselected_ = getattr(self, 'preselected_categorical_', [])
+                self.numeric_features_preselected_ = getattr(self, 'preselected_numeric_', [])
+                print(f"[fit] Features catégorielles présélectionnées : {self.categorical_features_preselected_}")
+                print(f"[fit] Features numériques présélectionnées : {self.numeric_features_preselected_}")
+                if len(self.categorical_features_preselected_) > 0:
+                    enc_categorical_features = [c for c in self.categorical_features if c in self.categorical_features_preselected_]
+                    if len(enc_categorical_features) == 0:
+                        enc_categorical_features = self.categorical_features
+                else:
+                    enc_categorical_features = self.categorical_features
+                print(f"[fit] Features utilisées pour target-encoding : {enc_categorical_features}")
+            except Exception as e:
+                print(f"[fit] Erreur présélection features: {e}")
+                enc_categorical_features = self.categorical_features
+        print("[fit] Fin du fit.")
+
+    def _compute_tschuprow_t(self, series_x: pd.Series, y: pd.Series, n_bins: int = 10, min_count: int = 5) -> float:
+        try:
+            import pandas as _pd
+            import numpy as _np
+            from scipy.stats import chi2_contingency
+        except Exception:
+            return float('nan')
+        if series_x is None or y is None:
+            return float('nan')
+        try:
+            sx = series_x.dropna()
+            sy = y.loc[sx.index]
+        except Exception:
+            sx = series_x.copy()
+            sy = y.copy()
+        if sx.shape[0] < int(min_count):
+            return float('nan')
+        try:
+            bx = _pd.qcut(sx.rank(method='first'), q=int(n_bins), labels=False, duplicates='drop')
+        except Exception:
+            try:
+                bx = _pd.cut(sx, bins=int(n_bins), labels=False)
+            except Exception:
+                return float('nan')
+        try:
+            by = _pd.qcut(sy.rank(method='first'), q=int(n_bins), labels=False, duplicates='drop')
+        except Exception:
+            try:
+                by = _pd.cut(sy, bins=int(n_bins), labels=False)
+            except Exception:
+                return float('nan')
+        df = _pd.DataFrame({'bx': bx, 'by': by}).dropna()
+        if df.shape[0] < int(min_count):
+            return float('nan')
+        ct = _pd.crosstab(df['bx'], df['by'])
+        if ct.shape[0] < 2 or ct.shape[1] < 2:
+            return float('nan')
+        try:
+            chi2, p, dof, expected = chi2_contingency(ct)
+        except Exception:
+            return float('nan')
+        n = ct.values.sum()
+        r, c = ct.shape
+        denom = n * _np.sqrt(max(0.0, (r - 1) * (c - 1)))
+        if denom <= 0:
+            return float('nan')
+        T = _np.sqrt(max(0.0, float(chi2) / float(denom)))
+        return float(T)
+
+    def _compute_kruskal_wallis(self, series_cat: pd.Series, y: pd.Series, min_count: int = 5) -> dict:
+        try:
+            import pandas as _pd
+            import numpy as _np
+            from scipy.stats import kruskal
+        except Exception:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+        if series_cat is None or y is None:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+        df = _pd.DataFrame({'cat': series_cat.fillna('___NaN___').astype(str), 'y': y})
+        counts = df['cat'].value_counts()
+        valid = counts[counts >= int(min_count)].index.tolist()
+        if len(valid) < 2:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+        groups = [df.loc[df['cat'] == k, 'y'].values for k in valid]
+        try:
+            stat, p = kruskal(*groups)
+            return {'statistic': float(stat), 'pvalue': float(p)}
+        except Exception:
+            return {'statistic': float('nan'), 'pvalue': float('nan')}
+
+    def preselect_features(self, X: pd.DataFrame, y: pd.Series,
+                           top_k_numeric: int = 20,
+                           top_k_categorical: int = 20,
+                           pvalue_threshold: float = 0.05,
+                           n_bins: int = 10,
+                           min_count: int = 5) -> list:
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        num_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+        num_cols = [c for c in num_cols if c != 'index']
+        cat_cols = [c for c in (self.categorical_features or []) if c in X.columns]
+        numeric_scores = {}
+        for col in num_cols:
+            try:
+                if X[col].dropna().shape[0] < int(min_count):
+                    numeric_scores[col] = float('nan')
+                    continue
+                t = self._compute_tschuprow_t(X[col], y, n_bins=n_bins, min_count=min_count)
+                numeric_scores[col] = t
+            except Exception:
+                numeric_scores[col] = float('nan')
+        import numpy as _np
+        sorted_num = sorted(numeric_scores.items(), key=lambda kv: (_np.nan_to_num(kv[1], nan=-1.0)), reverse=True)
+        selected_numeric = [k for k, v in sorted_num if not _np.isnan(v)][:int(top_k_numeric)]
+        categorical_scores = {}
+        for col in cat_cols:
+            try:
+                res = self._compute_kruskal_wallis(X[col], y, min_count=min_count)
+                categorical_scores[col] = res
+            except Exception:
+                categorical_scores[col] = {'statistic': float('nan'), 'pvalue': float('nan')}
+        cat_filtered = {k: v for k, v in categorical_scores.items() if v.get('pvalue') is not None and not _np.isnan(v.get('pvalue')) and v.get('pvalue') <= float(pvalue_threshold)}
+        sorted_cat = sorted(cat_filtered.items(), key=lambda kv: (kv[1]['pvalue'], -kv[1]['statistic']))
+        selected_categorical = [k for k, v in sorted_cat][:int(top_k_categorical)]
+        self.preselected_numeric_ = selected_numeric
+        self.preselected_categorical_ = selected_categorical
+        self.preselected_features_ = selected_numeric + selected_categorical
+        return self.preselected_features_
 
         # Apprentissage des encodages catégoriels de type target-encoding (OOF smoothing)
         if y is not None and self.categorical_features:
@@ -1425,7 +1736,7 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
             cv = 5
             min_count = int(self.min_count)
             alpha = float(self.alpha)
-            for col in self.categorical_features:
+            for col in enc_categorical_features:
                 if col not in df.columns:
                     continue
                 series = df[col].fillna('___NaN___').astype(str)
@@ -1515,45 +1826,54 @@ class Feature_Engineer_Amount(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X:pd.DataFrame, y:pd.Series=None):
+        print("[transform] Vérification et application preprocessing_map et categorical_features...")
+        if hasattr(self.amount_process, 'set_preprocessing_map') and self.preprocessing_map:
+            print(f"[transform] Mise à jour preprocessing_map dans amount_process : {self.preprocessing_map}")
+            self.amount_process.set_preprocessing_map(self.preprocessing_map)
+        if hasattr(self.amount_process, 'set_categorical_features') and self.categorical_features:
+            print(f"[transform] Mise à jour categorical_features dans amount_process : {self.categorical_features}")
+            self.amount_process.set_categorical_features(self.categorical_features)
         if self.booking_applied.get("transform_remove_zero_target_key", False):
+            print("[transform] Suppression des zéros sur la cible...")
             X = self.amount_process.transform_remove_zero_target(X)
         if self.booking_applied.get("transform_remove_null_target_key", False):
+            print("[transform] Suppression des null sur la cible...")
             X = self.amount_process.transform_remove_null_target(X)
         if self.booking_applied.get("transform_preprocessing_null_target_key", False):
+            print("[transform] Application preprocessing null target...")
             X = self.amount_process._transform_preprocessing_null_target(X)
         if self.booking_applied.get("transform_process_nan_remover_key", False):
+            print("[transform] Suppression des NaN selon booking...")
             X = self.amount_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
         if self.preprocessing_map:
+            print("[transform] Application preprocessing_map...")
             X = self.amount_process.apply_preprocessing(X)
         X = X.copy()
-        # Appliquer imputations numériques apprises
         if hasattr(self, 'fill_values_') and isinstance(self.fill_values_, dict):
+            print(f"[transform] Imputation des valeurs manquantes : {self.fill_values_}")
             X = X.fillna(self.fill_values_)
-
-        # Appliquer encodage target-encoding appris
         for col in self.categorical_features:
             if col not in X.columns:
+                print(f"[transform] Colonne {col} absente, encodage ignoré.")
                 continue
             info = self.categ_mapping_.get(col)
             if not info:
-                # fallback : label encoding via pandas codes
+                print(f"[transform] Pas de mapping pour {col}, fallback label encoding.")
                 X[col] = X[col].astype('category').cat.codes
                 continue
             mapping = info.get('mapping', {})
             default = info.get('default', 0.0)
             min_count = info.get('min_count', 5)
-
             def _map_val(v):
                 k = str(v) if v is not None else '___NaN___'
                 if k in mapping:
                     return mapping[k]
-                # if mapping contains an 'OTHER' representative, use it
                 if 'OTHER' in mapping:
                     return mapping['OTHER']
                 return default
-
             X[col] = X[col].fillna('___NaN___').apply(_map_val)
-
+            print(f"[transform] Encodage appliqué sur {col}.")
+        print("[transform] Fin du transform.")
         return X
 
     def save_feature_engineer(self, fe, filepath: str):
@@ -1650,52 +1970,6 @@ class Model_Prediction_Amount(BaseEstimator):
         self.model_name_ = list(self.models_.keys())[0]
         self.model_ = self.models_[self.model_name_]
 
-        def analyse_stats_modalities(self, stats_df, target_type='numeric'):
-            """
-            Analyse automatique des statistiques de distribution pour chaque modalité.
-            Version locale robuste (utilisée si définie dans l'initialiseur).
-            """
-            def _safe_fmt(val, fmt='.2f'):
-                try:
-                    if val is None or (isinstance(val, float) and np.isnan(val)):
-                        return 'NA'
-                    return format(val, fmt)
-                except Exception:
-                    return str(val)
-
-            n_modalities = stats_df.shape[0]
-            for _, row in stats_df.iterrows():
-                mean = row.get('mean', None)
-                median = row.get('50%', None)
-                std = row.get('std', None)
-                variance = row.get('variance', None)
-                n = row.get('n', None)
-                label = row.get('marque_vehicule') or row.get('modele_vehicule')
-                if label is None:
-                    try:
-                        label = row.iloc[0]
-                    except Exception:
-                        label = 'NA'
-
-                print(
-                    f"Modalité: {label}, n={_safe_fmt(n, 'd') if isinstance(n, (int, np.integer)) else _safe_fmt(n)}",
-                    f"mean={_safe_fmt(mean)}, median={_safe_fmt(median)}, std={_safe_fmt(std)}, variance={_safe_fmt(variance)}",
-                )
-
-                if n is not None:
-                    try:
-                        if int(n) < 10:
-                            print("  ⚠ Effectif faible, test non robuste.")
-                    except Exception:
-                        pass
-                if mean is not None and median is not None and std is not None:
-                    try:
-                        if abs(mean - median) < 0.1 * std:
-                            print("  → Distribution plutôt normale, ANOVA possible.")
-                        else:
-                            print("  → Distribution asymétrique, privilégier Kruskal-Wallis.")
-                    except Exception:
-                        pass
 
     def tune_xgboost_hyperparameters(self, X, y, param_grid=None, cv=None, scoring=None):
         """
@@ -1709,7 +1983,7 @@ class Model_Prediction_Amount(BaseEstimator):
         Returns:
             best_estimator, best_params
         """
-        from sklearn.model_selection import GridSearchCV
+
         if param_grid is None:
             param_grid = {
                 'n_estimators': [100, 200],
@@ -1728,29 +2002,19 @@ class Model_Prediction_Amount(BaseEstimator):
         self.best_params_ = grid_search.best_params_
         return self.model_, self.best_params_
     
-    def fit(self, X: pd.DataFrame, y: pd.Series, model_name: str = None, kfold=None):
+    def fit(self, X: pd.DataFrame, y: pd.Series, fe_amount=None, model_name: str = None):
         """
-        Correction et robustesse :
-        - Split train/valid pour importance et entraînement
-        - Importance calculée sur le modèle courant
-        - Sélection des features par permutation importance
-        - Traçabilité complète et artefacts
+        Entraîne le modèle sur les features présélectionnées par le feature engineer.
         """
-        if kfold is None:
-            kfold = self.val_kfold
-
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
-
         X_num = X.select_dtypes(include=[np.number]).copy()
         X_num = X_num.drop(columns=['index'], errors='ignore')
         self.numeric_features_ = list(X_num.columns)
         self.fill_values_ = X_num.median(numeric_only=True).to_dict()
         X_num = X_num.fillna(self.fill_values_)
-
         if X_num.shape[1] == 0:
             raise ValueError("Aucune colonne numérique disponible pour entraîner le modèle Amount.")
-
         # Détermination du modèle à utiliser
         if model_name is not None:
             if model_name not in self.models_:
@@ -1758,127 +2022,32 @@ class Model_Prediction_Amount(BaseEstimator):
             model = self.models_[model_name]
         else:
             model = self.model_
-
-        # Split train/valid pour importance et entraînement
-        if kfold is not None:
-            splits = run_internal_step("KFold split", kfold.split, X_num, y)
-            train_idx, valid_idx = splits[0]
-            X_train_i, X_valid_i = X_num.iloc[train_idx], X_num.iloc[valid_idx]
-            y_train_i, y_valid_i = y.iloc[train_idx], y.iloc[valid_idx]
+        # Utiliser la sélection du feature engineer
+        if fe_amount is not None and hasattr(fe_amount, 'preselected_features_'):
+            selected_features = [f for f in fe_amount.preselected_features_ if f in X_num.columns]
         else:
-            X_train_i, X_valid_i, y_train_i, y_valid_i = run_internal_step(
-                "Train/Validation split",
-                train_test_split,
-                X_num,
-                y,
-                test_size=0.2,
-                random_state=self.random_state,
-                shuffle=True,
-            )
-
-        # Entraîner le modèle sur le split train avant d'évaluer l'importance
-        run_internal_step("Fit model for importance", model.fit, X_train_i, y_train_i)
-
-        # Permutation importance sur train et valid
-        perm_train = run_internal_step(
-            "Permutation importance train",
-            permutation_importance,
-            model,
-            X_train_i,
-            y_train_i,
-            n_repeats=self.n_repeats_importance,
-            random_state=self.random_state,
-            scoring=self.scoring,
-        )
-        perm_valid = run_internal_step(
-            "Permutation importance valid",
-            permutation_importance,
-            model,
-            X_valid_i,
-            y_valid_i,
-            n_repeats=self.n_repeats_importance,
-            random_state=self.random_state,
-            scoring=self.scoring,
-        )
-
-        contribution_drift_df = pd.DataFrame({
-            'feature': self.numeric_features_,
-            'contribution_train': perm_train.importances_mean,
-            'contribution_valid': perm_valid.importances_mean,
-        })
-        contribution_drift_df['drift_abs'] = (
-            contribution_drift_df['contribution_train'] - contribution_drift_df['contribution_valid']
-        ).abs()
-        contribution_drift_df['drift_ratio_train_over_valid'] = (
-            contribution_drift_df['contribution_train'].abs() + 1e-9
-        ) / (contribution_drift_df['contribution_valid'].abs() + 1e-9)
-
-        keep_mask = (
-            (contribution_drift_df['contribution_valid'] > 0)
-            & (contribution_drift_df['drift_ratio_train_over_valid'] >= self.ratio_keep_min)
-            & (contribution_drift_df['drift_ratio_train_over_valid'] <= self.ratio_keep_max)
-        )
-        selected_features = contribution_drift_df.loc[keep_mask, 'feature'].tolist()
-        if len(selected_features) == 0:
-            fallback = contribution_drift_df.loc[
-                contribution_drift_df['contribution_valid'] > 0,
-                'feature'
-            ].tolist()
-            selected_features = fallback if len(fallback) > 0 else self.numeric_features_
-
+            selected_features = self.numeric_features_
         self.selected_features_ = selected_features.copy()
         self.selected_features_keep_ = selected_features.copy()
-        self.selected_features_investigate_ = contribution_drift_df.loc[~keep_mask, 'feature'].tolist()
-        self.contribution_drift_df_ = contribution_drift_df.sort_values('drift_abs', ascending=False)
+        self.selected_features_investigate_ = []
+        self.contribution_drift_df_ = pd.DataFrame()
         self.history_ = [(self.selected_features_.copy(), None)]
-
-        # Stockage des résultats pour le modèle sélectionné (pas de boucle multi‑modèles)
-        self.models_features_ = {}
-        self.models_contribution_ = {}
-        self.models_history_ = {}
-        self.models_artifacts_ = {}
-
-        chosen_name = model_name if model_name is not None else self.model_name_
-        # Store feature selection results
-        self.models_features_[chosen_name] = self.selected_features_.copy()
-        self.models_contribution_[chosen_name] = contribution_drift_df.copy()
-        self.models_history_[chosen_name] = [(self.selected_features_.copy(), None)]
-
-        # Fit final model on selected features using all data
-        run_internal_step(
-            "Fit " + chosen_name + " sur features sélectionnées",
-            model.fit,
-            X_num[self.selected_features_],
-            y,
-        )
-
-        self.model_name_ = chosen_name
+        # Ajout KFold cross-validation
+        from sklearn.model_selection import KFold
+        kf = KFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
+        scores = []
+        for train_idx, val_idx in kf.split(X_num[selected_features]):
+            X_train, X_val = X_num.iloc[train_idx], X_num.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+            model.fit(X_train[selected_features], y_train)
+            y_pred = model.predict(X_val[selected_features])
+            from sklearn.metrics import mean_squared_error
+            scores.append(mean_squared_error(y_val, y_pred))
+        print(f"[fit] KFold CV scores (MSE): {scores}")
+        # Fit final model sur tout le jeu
+        model.fit(X_num[selected_features], y)
+        self.model_name_ = model_name if model_name is not None else self.model_name_
         self.model_ = model
-        self.models_artifacts_[self.model_name_] = {
-            'model': model,
-            'selected_features': self.selected_features_.copy(),
-            'selected_features_keep': self.selected_features_keep_.copy(),
-            'selected_features_investigate': self.selected_features_investigate_.copy(),
-            'numeric_features': self.numeric_features_.copy(),
-            'fill_values': self.fill_values_.copy(),
-            'contribution_drift_df': contribution_drift_df.copy(),
-            'history': self.history_.copy(),
-            'config': {
-                'cv': self.cv,
-                'scoring': self.scoring,
-                'max_features': self.max_features,
-                'random_state': self.random_state,
-                'tol_improvement': self.tol_improvement,
-                'ratio_keep_min': self.ratio_keep_min,
-                'ratio_keep_max': self.ratio_keep_max,
-                'n_repeats_importance': self.n_repeats_importance,
-            },
-            'performance': self.metrics(X_num[self.selected_features_], y, model_name=self.model_name_),
-            'metadata': {
-                'fitted_at': datetime.utcnow().isoformat(),
-            }
-        }
-
         return self
 
     def predict(self, X: pd.DataFrame, model_name: str = None, kfold=None):
@@ -1929,47 +2098,43 @@ class Model_Prediction_Amount(BaseEstimator):
         }
     
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        artifact = {
-            'model_': model_,
-            'selected_features_': self.selected_features_,
-            'selected_features_keep_': self.selected_features_keep_,
-            'selected_features_investigate_': self.selected_features_investigate_,
-            'numeric_features_': self.numeric_features_,
-            'fill_values_': self.fill_values_,
-            'contribution_drift_df_': self.contribution_drift_df_.to_dict(orient='records'),
-            'history_': self.history_,
-            'config': {
-                'cv': self.cv,
-                'scoring': self.scoring,
-                'max_features': self.max_features,
-                'random_state': self.random_state,
-                'tol_improvement': self.tol_improvement,
-                'ratio_keep_min': self.ratio_keep_min,
-                'ratio_keep_max': self.ratio_keep_max,
-                'n_repeats_importance': self.n_repeats_importance,
-            },
-            'metadata': {
-                'saved_at': datetime.utcnow().isoformat(),
-                **(metadata or {}),
+        try:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            artifact = {
+                'model_': model_,
+                'selected_features_': self.selected_features_,
+                'selected_features_keep_': self.selected_features_keep_,
+                'selected_features_investigate_': self.selected_features_investigate_,
+                'numeric_features_': self.numeric_features_,
+                'fill_values_': self.fill_values_,
+                'history_': self.history_,
+                'config': {
+                    'cv': self.cv,
+                    'scoring': self.scoring,
+                    'max_features': self.max_features,
+                    'random_state': self.random_state,
+                    'max_iter': getattr(self, 'max_iter', None),
+                },
+                'metadata': {
+                    'saved_at': datetime.utcnow().isoformat(),
+                    **(metadata or {}),
+                }
             }
-        }
-        with open(filepath, 'wb') as f:
-            pickle.dump(artifact, f)
+            with open(filepath, 'wb') as f:
+                pickle.dump(artifact, f)
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde du modèle: {e}")
 
     def load_model(self, filepath: str):
         """Charge le modèle depuis un fichier.
-
         Args:
             filepath (str): Chemin vers le fichier contenant le modèle.
-
         Returns:
             Model_Prediction_Amount: Le modèle chargé depuis le fichier.
         """
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
-
             if isinstance(loaded, dict) and 'model_' in loaded:
                 self.model_ = loaded.get('model_', self.model_)
                 self.selected_features_ = loaded.get('selected_features_', self.selected_features_)
@@ -1977,20 +2142,14 @@ class Model_Prediction_Amount(BaseEstimator):
                 self.selected_features_investigate_ = loaded.get('selected_features_investigate_', self.selected_features_investigate_)
                 self.numeric_features_ = loaded.get('numeric_features_', self.numeric_features_)
                 self.fill_values_ = loaded.get('fill_values_', self.fill_values_)
-                contribution_drift_records = loaded.get('contribution_drift_df_', [])
-                self.contribution_drift_df_ = pd.DataFrame(contribution_drift_records)
                 self.history_ = loaded.get('history_', self.history_)
                 config = loaded.get('config', {})
                 self.cv = config.get('cv', self.cv)
                 self.scoring = config.get('scoring', self.scoring)
                 self.max_features = config.get('max_features', self.max_features)
                 self.random_state = config.get('random_state', self.random_state)
-                self.tol_improvement = config.get('tol_improvement', self.tol_improvement)
-                self.ratio_keep_min = config.get('ratio_keep_min', self.ratio_keep_min)
-                self.ratio_keep_max = config.get('ratio_keep_max', self.ratio_keep_max)
-                self.n_repeats_importance = config.get('n_repeats_importance', self.n_repeats_importance)
+                self.max_iter = config.get('max_iter', getattr(self, 'max_iter', None))
                 return loaded
-
             self.model_ = loaded
             return loaded
         except Exception as e:

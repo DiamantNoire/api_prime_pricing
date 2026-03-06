@@ -118,9 +118,16 @@ if __name__ == "__main__":
     metrics_freq = {}
     model_freq.fit(X_train_transfomed, y_train)
     # Prédiction sur le jeu de test
-    y_test_pred = run_step('Prédiction du modèle Freq sur test',
-                           model_freq.predict,
-                           X_test_transfomed)
+    y_test_pred_proba = run_step('Prédiction du modèle Freq sur test',
+                                 model_freq.predict_proba,
+                                 X_test_transfomed)
+    # On prend la colonne de la classe 1
+    seuil = 0.2  # Ajustez ici le seuil souhaité
+    if hasattr(y_test_pred_proba, 'shape') and y_test_pred_proba.shape[1] > 1:
+        proba_1 = y_test_pred_proba[:, 1]
+    else:
+        proba_1 = y_test_pred_proba.ravel()
+    y_test_pred = (proba_1 >= seuil).astype(int)
 
     # Évaluation sur train et valid
     metrics_freq_train = run_step('Évaluation du modèle de prédiction Freq sur train',

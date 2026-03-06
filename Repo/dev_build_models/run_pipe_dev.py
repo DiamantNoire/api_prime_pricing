@@ -176,7 +176,7 @@ if __name__ == "__main__":
              transform_remove_zero_target=True,
              transform_preprocessing_null_target=True,
              preprocessing_map=None,
-             categorical_features=['marque_vehicule', 'modele_vehicule'],
+             categorical_features=['marque_vehicule', 'modele_vehicule', 'code_postal'],
              alpha=20.0,
              min_count=5,
              noise_during_fit=True,
@@ -197,6 +197,15 @@ if __name__ == "__main__":
                 print(f"Rare categories count for {col}: {len(info.get('rare_categories', []))}")
             else:
                 print(f"Aucun mapping appris pour {col}")
+
+        # Afficher les features présélectionnées par le feature engineer
+        pre_num = getattr(fe_amount, 'preselected_numeric_', None)
+        pre_cat = getattr(fe_amount, 'preselected_categorical_', None)
+        pre_all = getattr(fe_amount, 'preselected_features_', None)
+        print('\n[PRÉSÉLECTION FEATURES]')
+        print(f"Numeric preselected ({len(pre_num) if pre_num is not None else 0}): {pre_num}")
+        print(f"Categorical preselected ({len(pre_cat) if pre_cat is not None else 0}): {pre_cat}")
+        print(f"All preselected ({len(pre_all) if pre_all is not None else 0}): {pre_all}\n")
 
         X_train_transfomed = run_step('transform du feature engineer Amount sur train (test)',
                                       fe_amount.transform,
