@@ -1954,17 +1954,8 @@ class Model_Prediction_Amount(BaseEstimator):
 
         # Ajout : support d'un dictionnaire {nom: modèle}
         if models is None:
-            self.models_ = {#"LinearRegression": LinearRegression(),
-                            #"Ridge": Ridge(),
-                            #"Lasso": Lasso(),
-                            #"ElasticNet": ElasticNet(),
-                            #"RandomForest": RandomForestRegressor(),
-                            #"GBR": GradientBoostingRegressor(),
-                            #"SVR": SVR(),
-                            #"KNN": KNeighborsRegressor(),
-                            "XGBoost": XGBRegressor(),
-                            # "LightGBM": LGBMRegressor(),
-                            #"CatBoost": CatBoostRegressor(),
+            self.models_ = {
+                "LinearRegression": LinearRegression()
             }
         elif isinstance(models, dict):
             self.models_ = models

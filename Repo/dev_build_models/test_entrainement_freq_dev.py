@@ -147,73 +147,28 @@ if __name__ == "__main__":
     selected_features_keep = model_freq.get_selected_features_keep()
     selected_features_investigate = model_freq.get_selected_features_investigate()
 
-    print("\n[FEATURES KEEP - FREQ]")
-    print(selected_features_keep)
-    print("\n[FEATURES INVESTIGATE - FREQ]")
-    print(selected_features_investigate)
-
-    perm_train = run_step('Permutation importance train (Freq)',
-                          permutation_importance,
-                          model_freq,
-                          X_train_transfomed[selected_features],
-                          y_train,
-                          n_repeats=5,
-                          random_state=42,
-                          scoring='neg_mean_squared_error')
-
-    perm_valid = run_step('Permutation importance valid (Freq)',
-                          permutation_importance,
-                          model_freq,
-                          X_valid_transfomed[selected_features],
-                          y_valid,
-                          n_repeats=5,
-                          random_state=42,
-                          scoring='neg_mean_squared_error')
-
-    contribution_drift_df = pd.DataFrame({
-        'feature': selected_features,
-        'contribution_train': perm_train.importances_mean,
-        'contribution_valid': perm_valid.importances_mean,
-    })
-    contribution_drift_df['drift_abs'] = (
-        contribution_drift_df['contribution_train'] - contribution_drift_df['contribution_valid']
-    ).abs()
-    contribution_drift_df['drift_ratio_train_over_valid'] = (
-        contribution_drift_df['contribution_train'].abs() + 1e-9
-    ) / (contribution_drift_df['contribution_valid'].abs() + 1e-9)
-    contribution_drift_df = contribution_drift_df.sort_values('drift_abs', ascending=False)
-
-    print("\n[CONTRIBUTION DRIFT FREQ - TOP 15]")
-    print(contribution_drift_df.head(15).to_string(index=False))
-
     # Sauvegardes robustes: FE séparé + artefact pipeline unique
     run_step('Sauvegarde du feature engineer Freq',
              fe_freq.save_feature_engineer,
              fe_freq,
              OUTPUT_FEATURE_ENGINEERING_FREQ_PATH)
+    # Sauvegardes robustes: Model séparé + artefact pipeline unique
+    run_step('Sauvegarde du modèle Freq',
+             model_freq.save_model,
+             model_freq.model_,
+             OUTPUT_MODEL_PREDICTION_FREQ_PATH)
 
     metadata_freq = {
         "target": TARGET_FREQ,
         "created_at": datetime.now().isoformat(),
-        "metrics_train": {
-            "RMSE": metrics_freq_train.get("RMSE"),
-        },
-        "metrics_valid": {
-            "RMSE": metrics_freq.get("RMSE"),
-        },
+        "metrics_train": metrics_freq_train,
+        "metrics_valid": metrics_freq,
         "metrics_pred_test": {
             "mean_pred": float(proba_1.mean()),
             "min_pred": float(proba_1.min()),
             "max_pred": float(proba_1.max()),
             "describe": pd.Series(proba_1).describe().to_dict()
         },
-        "selected_features": selected_features,
-        "selected_features_keep": selected_features_keep,
-        "selected_features_investigate": selected_features_investigate,
-        "columns_removed_due_to_nan": fe_freq.columns_to_remove,
-        "contribution_drift_top15": contribution_drift_df.head(15).to_dict(orient='records'),
-        "random_state": 42,
-        "feature_engineer": fe_freq,
     }
 
     run_step('Sauvegarde du pipeline Freq (feature engineer + modèle)',
@@ -230,7 +185,6 @@ if __name__ == "__main__":
     print(metadata_freq_loaded)
 
     # Sauvegarde des prédictions de test pour la soumission finale
-    # Sauvegarde la probabilité de la classe 1 (sans seuil)
     if hasattr(y_test_pred_proba, 'shape') and y_test_pred_proba.shape[1] > 1:
         proba_1 = y_test_pred_proba[:, 1]
     else:

@@ -50,10 +50,10 @@ if __name__ == "__main__":
     # =======================================================
     #-------- DEFINITION DES CHEMINS DE SORTIE -------------#
     # =======================================================
-    OUTPUT_FEATURE_ENGINEERING_AMOUNT_PATH = os.path.join(DATA_DIR, 'sorties/feature_engineering/features_amount.pickle')
+    OUTPUT_FEATURE_ENGINEERING_AMOUNT_PATH = os.path.join(DATA_DIR, 'sorties/feature_engineering/features_amount_reglineaire.pickle')
     os.makedirs(os.path.dirname(OUTPUT_FEATURE_ENGINEERING_AMOUNT_PATH), exist_ok=True)
 
-    OUTPUT_PAPELINE_AMOUNT_ARTIFACT_PATH = os.path.join(DATA_DIR, 'sorties/pipeline/pipeline_amount.pickle')
+    OUTPUT_PAPELINE_AMOUNT_ARTIFACT_PATH = os.path.join(DATA_DIR, 'sorties/pipeline/pipeline_amount_reglineaire.pickle')
     os.makedirs(os.path.dirname(OUTPUT_PAPELINE_AMOUNT_ARTIFACT_PATH), exist_ok=True)
 
 
@@ -203,4 +203,4 @@ if __name__ == "__main__":
         'index': df_test_copie['index'],
         'amount_pred': y_test_pred 
     })
-    amount_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Amount/pred_amount.csv'), index=False)
+    amount_df.to_csv(os.path.join(DATA_DIR, 'sorties/pour_kaggle/Amount/pred_amount_reglineaire.csv'), index=False)
