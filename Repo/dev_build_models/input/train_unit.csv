@@ -1,0 +1,6 @@
+index,id_client,id_vehicule,id_contrat,bonus,type_contrat,duree_contrat,anciennete_info,freq_paiement,paiement,utilisation,code_postal,conducteur2,age_conducteur1,age_conducteur2,sex_conducteur1,sex_conducteur2,anciennete_permis1,anciennete_permis2,anciennete_vehicule,cylindre_vehicule,din_vehicule,essence_vehicule,marque_vehicule,modele_vehicule,debut_vente_vehicule,fin_vente_vehicule,vitesse_vehicule,type_vehicule,prix_vehicule,poids_vehicule,nombre_sinistres,montant_sinistre
+0,C0001,V01,C0001-V01,0.50,Maxi,12,5,Monthly,No,Private,75001,No,35,,M,,17,,3.0,1200,75,Gasoline,RENAULT,CLIO,10,5,160,Tourism,12000,950,0,
+1,C0002,V02,C0002-V02,0.65,Median2,24,8,Yearly,Yes,Work,69001,Yes,42,39,F,M,20,18,7.0,1600,90,Diesel,PEUGEOT,308,8,4,175,Tourism,18500,1180,0,0.0
+2,C0003,V03,C0003-V03,0.80,Mini,36,10,Quarterly,No,Private,33000,No,51,,M,,29,,11.0,1800,110,Gasoline,TOYOTA,COROLLA,6,3,190,Tourism,22300,1320,1,850.0
+3,C0004,V04,C0004-V04,0.72,Maxi,18,6,Monthly,Yes,Work,13000,No,29,,F,,9,,2.0,1000,60,Hybrid,RENAULT,CAPTUR,4,2,165,Tourism,21000,1240,1,2300.0
+4,C0005,V05,C0005-V05,0.55,Median1,48,15,Yearly,No,Private,59000,Yes,60,58,M,F,35,33,14.0,2200,140,Diesel,BMW,SERIE3,12,6,210,Tourism,32000,1490,0,1200.0

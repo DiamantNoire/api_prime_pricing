@@ -1,0 +1,4 @@
+index,bonus,type_contrat,duree_contrat,anciennete_info,freq_paiement,paiement,utilisation,code_postal,conducteur2,age_conducteur1,age_conducteur2,sex_conducteur1,sex_conducteur2,anciennete_permis1,anciennete_permis2,anciennete_vehicule,cylindre_vehicule,din_vehicule,essence_vehicule,marque_vehicule,modele_vehicule,debut_vente_vehicule,fin_vente_vehicule,vitesse_vehicule,type_vehicule,prix_vehicule,poids_vehicule
+50000,0.58,Maxi,12,5,Monthly,No,Private,75015,No,37,,F,,18,,4.0,1300,80,Gasoline,RENAULT,CLIO,9,4,162,Tourism,12500,970
+50001,0.67,Median2,24,9,Yearly,Yes,Work,31000,Yes,46,44,M,F,24,22,8.0,1700,95,Diesel,PEUGEOT,308,7,4,178,Tourism,19000,1210
+50002,0.74,Mini,30,11,Quarterly,No,Private,44000,No,53,,M,,30,,12.0,1900,120,Hybrid,TOYOTA,COROLLA,5,2,188,Tourism,24000,1360
