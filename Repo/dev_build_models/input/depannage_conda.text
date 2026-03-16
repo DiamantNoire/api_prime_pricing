@@ -3,4 +3,7 @@ conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python entrainement_dev
 conda run -n env_MATHS_FINANCE_DS_ML --no-capture-output python test_entrainement_amount_baseline.py
 
 
+sudo chown -R cytech:cytech "/data/ECOLE/COURS_ECOLE/COURS/2025-2026/S1/UE Maths et Info/Data Science/v1/.git"
+git push origin dev_charly
+
 

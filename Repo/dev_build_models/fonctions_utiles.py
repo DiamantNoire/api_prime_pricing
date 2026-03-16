@@ -73,6 +73,7 @@ PROGRESS_STYLE_INTERNAL = {
     'leave': True,
 }
 def run_step(desc, fn, *args, **kwargs):
+    """Execute a pipeline step with a progress bar and return its result."""
     bar = tqdm(total=1, desc=desc, **PROGRESS_STYLE)
     try:
         result = fn(*args, **kwargs)
@@ -82,6 +83,7 @@ def run_step(desc, fn, *args, **kwargs):
     return result
 
 def run_internal_step(desc, fn, *args, **kwargs):
+    """Execute an internal sub-step with a dedicated progress style."""
     bar = tqdm(total=1, desc=desc, **PROGRESS_STYLE_INTERNAL)
     try:
         result = fn(*args, **kwargs)
@@ -97,6 +99,7 @@ def run_internal_step(desc, fn, *args, **kwargs):
 def _generer_csv_pred_freqence(df:pd.DataFrame,
                                 y_pred: pd.Series, 
                                 path:str) -> None:
+    """Export frequency predictions to a two-column CSV (index, pred)."""
     # Export prédictions test
     submission_df = pd.DataFrame({
         'index': df['index'],
@@ -109,6 +112,7 @@ class Frequence_Preprocessing:
     """Prétraitements métier pour la prédiction de la fréquence."""
 
     def __init__(self, target_col: str = "nombre_sinistres"):
+        """Initialize frequency preprocessing settings and dataset id mappings."""
         self.target_col = target_col
         self.second_target_col = "montant_sinistre"
         self.preprocessing_map = {}
@@ -119,14 +123,17 @@ class Frequence_Preprocessing:
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Return a defensive DataFrame copy from a DataFrame-like input."""
         if isinstance(df, pd.DataFrame):
             return df.copy()
         return pd.DataFrame(df)
 
     def set_preprocessing_map(self, preprocessing_map: Optional[dict]):
+        """Store a custom preprocessing map used by downstream transformers."""
         self.preprocessing_map = preprocessing_map or {}
 
     def _transform_remove_id_columns(self, name: str, df: pd.DataFrame) -> pd.DataFrame:
+        """Remove dataset-specific identifier columns when configured."""
         df = self._ensure_dataframe(df)
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
@@ -134,6 +141,7 @@ class Frequence_Preprocessing:
         return df.drop(columns=cols_to_remove, errors='ignore').copy()
     
     def _transform_remove_null_second_target(self, df:pd.DataFrame, second_target_col: Optional[str]=None) -> pd.DataFrame:
+        """Filter rows where the secondary target column is null."""
         df = self._ensure_dataframe(df)
         second_target_col = second_target_col or self.second_target_col
         if second_target_col in df.columns:
@@ -146,6 +154,7 @@ class Frequence_Preprocessing:
         columns_to_remove: Optional[List[str]] = None,
         threshold: Optional[float] = 0.9
     ) -> List[str]:
+        """Find columns whose null ratio is above the provided threshold."""
         df = self._ensure_dataframe(df)
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
@@ -154,6 +163,7 @@ class Frequence_Preprocessing:
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
+        """Drop columns identified during NaN-removal fitting."""
         df = self._ensure_dataframe(df)
         return df.drop(columns=columns_to_remove or [], errors='ignore')
 
@@ -163,6 +173,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
     """Feature engineering sklearn pour la fréquence."""
 
     def __init__(self, frequence_process: Frequence_Preprocessing):
+        """Initialize feature-engineering state for frequency modeling."""
         self.frequence_process = frequence_process
         self.columns_to_remove = []
         self.booking_applied = {}
@@ -181,6 +192,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         select_numeric_features_only: Optional[bool] = True,
         excluded_feature_columns: Optional[List[str]] = None,
     ):
+        """Configure which preprocessing operations are enabled for this transformer."""
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
@@ -195,6 +207,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def fit(self, X: pd.DataFrame, y: pd.Series = None):
+        """Fit internal schema, selected features, and fill values on training data."""
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
         X = X.copy()
@@ -229,6 +242,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y: pd.Series = None):
+        """Apply fitted preprocessing and return aligned engineered features."""
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
         X = X.copy()
@@ -251,9 +265,11 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return X
 
     def predict(self, X: pd.DataFrame):
+        """Alias of transform for sklearn compatibility in simple pipelines."""
         return self.transform(X)
 
     def save_feature_engineer(self, fe, filepath: str):
+        """Serialize and save a fitted frequency feature-engineering artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, 'wb') as f:
@@ -262,6 +278,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
             print(f"Erreur lors de la sauvegarde du feature engineer fréquence: {e}")
 
     def load_feature_engineer(self, filepath: str):
+        """Load a previously serialized frequency feature-engineering artifact."""
         try:
             with open(filepath, 'rb') as f:
                 return pickle.load(f)
@@ -275,6 +292,7 @@ class Model_Prediction_Frequence(BaseEstimator):
     """Prédiction de la fréquence (binaire) avec GradientBoostingClassifier."""
 
     def __init__(self):
+        """Initialize the frequency model pipeline and training metadata."""
         self.model_name_ = "GradientBoostingClassifier"
         self.pipeline_ = Pipeline([
             ("scaler", StandardScaler()),
@@ -288,11 +306,13 @@ class Model_Prediction_Frequence(BaseEstimator):
         self.history_ = []
 
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Return a defensive DataFrame copy from input features."""
         if isinstance(X, pd.DataFrame):
             return X.copy()
         return pd.DataFrame(X)
 
     def _prepare_X(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Reindex and impute features according to the fitted training schema."""
         X = self._ensure_dataframe(X)
         if self.selected_features_:
             X = X.reindex(columns=self.selected_features_)
@@ -301,6 +321,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         return X
 
     def tune_GBClassifier_hyperparameters(self, X, y, param_grid=None):
+        """Tune GradientBoostingClassifier hyperparameters via stratified CV."""
         X = self._ensure_dataframe(X)
         self.selected_features_ = list(X.columns)
         num = X.select_dtypes(include=[np.number])
@@ -337,6 +358,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         }
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
+        """Fit the frequency classification pipeline."""
         X = self._prepare_X(X)
         self.pipeline_.fit(X, y)
         self.history_.append({
@@ -347,10 +369,12 @@ class Model_Prediction_Frequence(BaseEstimator):
         return self
 
     def predict(self, X: pd.DataFrame):
+        """Predict frequency classes for prepared feature rows."""
         X = self._prepare_X(X)
         return self.pipeline_.predict(X)
 
     def predict_proba(self, X: pd.DataFrame):
+        """Predict class probabilities for frequency classification."""
         X = self._prepare_X(X)
         return self.pipeline_.predict_proba(X)
 
@@ -362,6 +386,7 @@ class Model_Prediction_Frequence(BaseEstimator):
                 y_valid: Optional[pd.Series] = None, 
                 y_pred_valid: Optional[pd.Series] = None,
                 y_proba_valid: Optional[np.ndarray] = None) -> Dict[str, Any]:
+        """Compute training and optional validation metrics for classification."""
         out = {
             "train":{
                 "accuracy": accuracy_score(y_train, y_pred_train),
@@ -384,6 +409,7 @@ class Model_Prediction_Frequence(BaseEstimator):
     def test_prediction_stats(self, 
                               y_pred_test: np.ndarray, 
                               filepath: Optional[str] = None) -> pd.Series:
+        """Compute summary stats for test predictions and optionally save them."""
         stats_test = pd.Series(
             y_pred_test,
             name='predicted_montant_sinistre'
@@ -396,6 +422,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         return stats_test
 
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+        """Save model pipeline and metadata to a pickle artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -418,6 +445,7 @@ class Model_Prediction_Frequence(BaseEstimator):
             print(f"Erreur lors de la sauvegarde du modèle fréquence: {e}")
 
     def load_model(self, filepath: str):
+        """Load model artifact and restore tracked model attributes."""
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
@@ -438,6 +466,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         feature_engineer=None,
         metadata: Optional[Dict[str, Any]] = None
     ):
+        """Save a complete inference artifact with feature engineer and model."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -468,6 +497,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         filepath: str,
         metadata: Optional[Dict[str, Any]] = None
     ):
+        """Save a lightweight artifact containing key model metadata only."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -488,6 +518,7 @@ class Model_Prediction_Frequence(BaseEstimator):
             print(f"Erreur lors de la sauvegarde de l'artefact synthétique fréquence: {e}")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
+        """Read and return metadata from a stored model artifact file."""
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
@@ -507,6 +538,7 @@ class Model_Prediction_Frequence(BaseEstimator):
 def _generer_csv_pred_severite(df:pd.DataFrame,
                                 y_pred: pd.Series, 
                                 path:str) -> None:
+    """Export severity predictions to a two-column CSV (index, pred)."""
     # Export prédictions test
     submission_df = pd.DataFrame({
         'index': df['index'],
@@ -519,6 +551,7 @@ class Severite_Preprocessing:
     """Prétraitements métier pour la prédiction de la sévérité."""
 
     def __init__(self, target_col: str = "montant_sinistre"):
+        """Initialize severity preprocessing settings and dataset id mappings."""
         self.target_col = target_col
         self.preprocessing_map = {}
         self.categorical_features = []
@@ -529,11 +562,13 @@ class Severite_Preprocessing:
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Return a defensive DataFrame copy from a DataFrame-like input."""
         if isinstance(df, pd.DataFrame):
             return df.copy()
         return pd.DataFrame(df)
 
     def _transform_remove_id_columns(self, name: str, df: pd.DataFrame) -> pd.DataFrame:
+        """Remove dataset-specific identifier columns when configured."""
         df = self._ensure_dataframe(df)
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
@@ -541,6 +576,7 @@ class Severite_Preprocessing:
         return df.drop(columns=cols_to_remove, errors='ignore')
 
     def _transform_remove_zero_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+        """Filter rows where the target is equal to zero."""
         df = self._ensure_dataframe(df)
         target_col = target_col or self.target_col
         if target_col in df.columns:
@@ -549,9 +585,11 @@ class Severite_Preprocessing:
 
     # Compatibilité avec le code existant
     def _transform_remove_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+        """Compatibility alias to remove rows with a zero target."""
         return self._transform_remove_zero_target(df, target_col=target_col)
 
     def _transform_preprocess_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+        """Filter rows where the target column is null."""
         df = self._ensure_dataframe(df)
         target_col = target_col or self.target_col
         if target_col in df.columns:
@@ -559,6 +597,7 @@ class Severite_Preprocessing:
         return df
 
     def set_preprocessing_map(self, preprocessing_map: Optional[dict]):
+        """Store a custom preprocessing map used by downstream transformers."""
         self.preprocessing_map = preprocessing_map or {}
 
     def _fit_preprocess_NanRemover(
@@ -567,6 +606,7 @@ class Severite_Preprocessing:
         columns_to_remove: Optional[List[str]] = None,
         threshold: Optional[float] = 0.9
     ) -> List[str]:
+        """Find columns whose null ratio is above the provided threshold."""
         df = self._ensure_dataframe(df)
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
@@ -575,6 +615,7 @@ class Severite_Preprocessing:
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
+        """Drop columns identified during NaN-removal fitting."""
         df = self._ensure_dataframe(df)
         return df.drop(columns=columns_to_remove or [], errors='ignore')
 
@@ -584,6 +625,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
     """Wrapper sklearn pour le feature engineering de la sévérité."""
 
     def __init__(self, severite_process: Severite_Preprocessing):
+        """Initialize feature-engineering state for severity modeling."""
         self.severite_process = severite_process
         self.columns_to_remove = []
         self.booking_applied = {}
@@ -606,6 +648,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         select_numeric_features_only: Optional[bool] = True,
         excluded_feature_columns: Optional[List[str]] = None,
     ):
+        """Configure which preprocessing operations are enabled for this transformer."""
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
@@ -623,10 +666,12 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def set_dataset_name_for_transform(self, dataset_name: str):
+        """Set dataset-name context used during transform-time id-column removal."""
         self.dataset_name_for_transform_ = dataset_name
         return self
 
     def fit(self, X: pd.DataFrame, y: pd.Series = None):
+        """Fit internal schema, selected features, and fill values on training data."""
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
 
@@ -665,6 +710,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y: pd.Series = None):
+        """Apply fitted preprocessing and return aligned engineered features."""
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
         X = X.copy()
@@ -700,9 +746,11 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         return X
 
     def predict(self, X: pd.DataFrame):
+        """Alias of transform for sklearn compatibility in simple pipelines."""
         return self.transform(X)
 
     def save_feature_engineer(self, fe, filepath: str):
+        """Serialize and save a fitted severity feature-engineering artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, 'wb') as f:
@@ -711,6 +759,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
             print(f"Erreur lors de la sauvegarde du feature engineer: {e}")
 
     def load_feature_engineer(self, filepath: str):
+        """Load a previously serialized severity feature-engineering artifact."""
         try:
             with open(filepath, 'rb') as f:
                 fe = pickle.load(f)
@@ -722,7 +771,10 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
 
 @dataclass
 class Model_Prediction_Severite(BaseEstimator):
+    """Regression model wrapper used to predict claim severity."""
+
     def __init__(self):
+        """Initialize the severity model pipeline and training metadata."""
         self.model_name_ = "GradientBoostingRegressor"
         self.pipeline_ = Pipeline([
             ("scaler", StandardScaler()),
@@ -736,11 +788,13 @@ class Model_Prediction_Severite(BaseEstimator):
         self.history_ = []
 
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Return a defensive DataFrame copy from input features."""
         if isinstance(X, pd.DataFrame):
             return X.copy()
         return pd.DataFrame(X)
 
     def _prepare_X(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Reindex and impute features according to the fitted training schema."""
         X = self._ensure_dataframe(X)
 
         if self.selected_features_:
@@ -752,6 +806,7 @@ class Model_Prediction_Severite(BaseEstimator):
         return X
 
     def tune_GBRegressor_hyperparameters(self, X, y, param_grid=None, cv=5, scoring='neg_mean_squared_error'):
+        """Tune GradientBoostingRegressor hyperparameters via cross-validation."""
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -799,6 +854,7 @@ class Model_Prediction_Severite(BaseEstimator):
         }
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
+        """Fit the severity regression pipeline."""
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -821,6 +877,7 @@ class Model_Prediction_Severite(BaseEstimator):
         return self
 
     def predict(self, X: pd.DataFrame):
+        """Predict claim severity values for prepared feature rows."""
         X_prepared = self._prepare_X(X)
         return self.pipeline_.predict(X_prepared)
 
@@ -828,6 +885,7 @@ class Model_Prediction_Severite(BaseEstimator):
                 y_pred_train: pd.Series,
                 y_valid: Optional[pd.Series] = None, 
                 y_pred_valid: Optional[pd.Series] = None) -> Dict[str, Any]:
+        """Compute regression metrics for train and optional validation sets."""
         results = {
             "train": {
                 "rmse": root_mean_squared_error(y_train, y_pred_train),
@@ -848,6 +906,7 @@ class Model_Prediction_Severite(BaseEstimator):
     def test_prediction_stats(self, 
                               y_pred_test: np.ndarray, 
                               filepath: Optional[str] = None) -> pd.Series:
+        """Compute summary stats for test predictions and optionally save them."""
         stats_test = pd.Series(
             y_pred_test,
             name='predicted_montant_sinistre'
@@ -860,6 +919,7 @@ class Model_Prediction_Severite(BaseEstimator):
         return stats_test
 
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+        """Save model pipeline and metadata to a pickle artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -882,6 +942,7 @@ class Model_Prediction_Severite(BaseEstimator):
             print(f"Erreur lors de la sauvegarde du modèle: {e}")
 
     def load_model(self, filepath: str):
+        """Load model artifact and restore tracked model attributes."""
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
@@ -906,6 +967,7 @@ class Model_Prediction_Severite(BaseEstimator):
         feature_engineer=None,
         metadata: Optional[Dict[str, Any]] = None
     ):
+        """Save a complete inference artifact with feature engineer and model."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -936,6 +998,7 @@ class Model_Prediction_Severite(BaseEstimator):
         filepath: str,
         metadata: Optional[Dict[str, Any]] = None
     ):
+        """Save a lightweight artifact containing key model metadata only."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -956,6 +1019,7 @@ class Model_Prediction_Severite(BaseEstimator):
             print(f"Erreur lors de la sauvegarde de l'artefact synthétique: {e}")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
+        """Read and return metadata from a stored model artifact file."""
         try:
             with open(filepath, 'rb') as f:
                 loaded = pickle.load(f)
