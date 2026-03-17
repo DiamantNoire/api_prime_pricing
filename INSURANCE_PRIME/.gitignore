@@ -7,3 +7,9 @@ README.md
 README.txt
 **/README.md
 **/README.txt
+/Repo/
+/.github/
+.gitlab/
+.git/
+.gitignore
+.gitmodules
