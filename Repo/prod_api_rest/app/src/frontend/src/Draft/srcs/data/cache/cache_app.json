@@ -1,6 +1,0 @@
-{
-  "last_refresh_iso": "2026-01-21T11:08:31.793760+01:00",
-  "mode": "manuel",
-  "source": "alimenter_app_en_data",
-  "parquet_path": "srcs\\data\\JDD_ODRE.parquet"
-}
