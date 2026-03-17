@@ -36,6 +36,7 @@ numpy==1.26.4
 pandas
 scikit-learn
 tqdm
+FastApi
 
 # Instructions rapides :
 # - Pour reproduire avec `pip` (approche simple) :
