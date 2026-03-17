@@ -1,6 +1,5 @@
 /garbages/
 *.code-workspace
-README.md previously ignored locally; now tracked in repo
 /Versionning_local/
 # Ignore README files (prevent adding simple README.md / README.txt)
 README.md
@@ -8,8 +7,9 @@ README.txt
 **/README.md
 **/README.txt
 /Repo/
-/.github/
 .gitlab/
 .git/
-.gitignore
 .gitmodules
+.venv/
+__pycache__/
+*.pyc

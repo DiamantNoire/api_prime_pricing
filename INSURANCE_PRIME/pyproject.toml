@@ -1,6 +1,0 @@
-[tool.uv.workspace]
-members = [
-    "dev_build_models",
-    "prod_api_rest/app/api",
-    "prod_api_rest/app/src/frontend",
-]
