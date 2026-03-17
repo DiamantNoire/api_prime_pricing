@@ -1,0 +1,23 @@
+{
+    "uid": "da_4yaqjl",
+    "filled_count": 16,
+    "row": {
+        "uid": "re_tqshqe",
+        "title": "consommation-quotidienne-brute 2021.csv",
+        "type": "csvfile",
+        "updated_at": "2025-08-11T14:25:24Z",
+        "display_name": "consommation-quotidienne-brute 2021.csv",
+        "datasource.type": "uploaded_file",
+        "datasource.file.uid": "consommation-quotidienne-brute-2021.csv",
+        "params.headers_first_row": true,
+        "params.encoding": "sloppy-windows-1252",
+        "params.separator": ";",
+        "params.first_row_no": 1,
+        "origin.label": "Uploaded file",
+        "origin.type": "uploaded_file",
+        "extraction_infos.label": "CSV File",
+        "extraction_infos.type": "csvfile",
+        "params.doublequote": true,
+        "filled_count": 16
+    }
+}

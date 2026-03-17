@@ -1,0 +1,32 @@
+[tool.poetry]
+package-mode = false 
+name = "Outil_de_supervision_jdd_odre"
+version = "0.1.0"
+description = "Application de supervision des jeux de données ODRE et une navigation multi-pages"
+authors = ["OPEN DATA"]
+license = "OpenData"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.30.0"
+pandas = "^2.2.0"
+sqlalchemy = "^2.0.0"
+toml = "^0.10.2"
+snowflake-connector-python = "^3.0.0"
+plotly = "^5.18.0"
+numpy = "^1.26.0"
+openpyxl = "^3.1.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.5.3"
+
+[tool.poetry.group.lint.dependencies]
+flake8 = "^6.1.0"
+black = "^23.9.1"

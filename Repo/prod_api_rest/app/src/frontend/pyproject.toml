@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "prediction"
+version = "0.0"
+description = "Prédiction d'une prime d'assurance automobile"
+authors = ["Ance - Serge - Ance"]
+license = "OpenSource"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

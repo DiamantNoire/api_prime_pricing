@@ -1,0 +1,901 @@
+
+/* ===========================
+   HEADER & SIDEBAR
+=========================== */
+/*
+header[data-testid="stHeader"] {
+    background-color: #1f4e79;
+    color: white;
+    padding: 10px;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #f4f4f4;
+    border-right: 2px solid #ccc;
+}*/
+
+/* ===========================
+   TABS
+=========================== */
+/*
+div[data-testid="stTabs"] button {
+    font-weight: bold;
+    color: #1f4e79;
+}*/
+
+/* ===========================
+   FOOTER
+=========================== */
+/*
+footer {
+    text-align: center;
+    color: gray;
+    font-size: 12px;
+    padding: 10px;
+    margin-top: auto;
+}*/
+
+
+/* ===========================
+   VARIABLES CSS - THEME 2025
+=========================== */
+:root {
+    /* Couleurs principales */
+    --color-1: #FFC600;
+    --color-2: #214B4D;
+    --color-3: #265B88;
+    --color-4: #327342;
+    --color-5: #543361;
+    --color-6: #AE2E4B;
+    --color-7: #FE9666;
+    --color-8: #A66999;
+    --color-9: #3599B8;
+    --color-10: #DFBFBF;
+    --color-11: #4AC5BB;
+    --color-12: #5F6B6D;
+    --color-13: #FB8281;
+    --color-14: #F4D25A;
+    --color-15: #7F898A;
+    --color-16: #A4DDEE;
+    --color-17: #FDAB89;
+    --color-18: #B687AC;
+    --color-19: #28738A;
+    --color-20: #A78F8F;
+    --color-21: #168980;
+    --color-22: #293537;
+    --color-23: #BB4A4A;
+    --color-24: #B59525;
+    --color-25: #475052;
+    --color-26: #6A9FB0;
+    --color-27: #BD7150;
+    --color-28: #7B4F71;
+    --color-29: #1B4D5C;
+    --color-30: #706060;
+    --color-31: #0F5C55;
+    --color-32: #1C2325;
+
+    /* Polices */
+    --font-default: 'Segoe UI', sans-serif;
+    --font-title: 'Segoe UI', sans-serif;
+    --font-title-bold: 'Segoe UI Bold', sans-serif;
+
+    /* Tailles */
+    --font-size-title: 14px;
+
+    --sidebar-width: 250px; /* largeur approximative de la sidebar */
+}
+
+/* ===========================
+   DESCRIPTIF DE PAGE D'ACCUEIL
+=========================== */
+.background-top{
+ clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
+}
+
+.background-bottom{
+ clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
+}
+.layout-container{
+
+}
+
+.carousel{
+
+}
+
+.ticket{
+
+}
+
+/* ===========================
+   DESCRIPTIF DES PAGES
+=========================== */
+.card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.card {
+    background-color: var(--color-2);
+    border-radius: 10px;
+    padding: 16px;
+    width: 220px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: 0.3s;
+    font-family: var(--font-default);
+    color: var(--color-1);
+}
+
+.card-larged {
+    background-color: var(--color-2);
+    border-radius: 10px;
+    padding: 16px;
+    width: 280px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: 0.3s;
+    font-family: var(--font-default);
+    color: var(--color-1);
+}
+
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    background-color: var(--color-14);
+}
+
+.card-title {
+    font-size: 16px;
+    font-family: var(--font-title-bold);
+    margin-bottom: 8px;
+    color: var(--color-1);
+}
+
+.card-description {
+    font-size: 13px;
+    color: var(--color-1);
+    font-family: var(--font-default);
+}
+
+
+
+html body {
+    font-family: var(--font-default);
+    background-color: var(--color-2);
+    color: var(--color-1);
+    height: 100%;
+    margin: 0;
+    display:  flex;
+    flex-direction:  column;
+}
+
+h1, h2, h3 {
+    font-family: var(--font-title-bold);
+    color: var(--color-3);
+    text-align: center;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content:  center;
+    padding: 20px;
+}
+
+/* ===========================
+   BOUTONS
+=========================== */
+.stButton > button {
+    background-color: var(--color-6);
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-default);
+    font-weight: bold;
+    transition: background 0.3s ease;
+}
+.stButton > button:hover {
+    background-color: var(--color-7);
+}
+
+/* ===========================
+   METRICS
+=========================== */
+.stMetric {
+    background-color: var(--color-10);
+    color: var(--color-22);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: var(--font-default);
+}
+
+/* ===========================
+   ALERTES
+=========================== */
+.stAlert {
+    font-family: var(--font-default);
+    border-left: 5px solid var(--color-23);
+    padding: 10px;
+}
+
+/* ===========================
+   TABLEAUX
+=========================== */
+.stDataFrame {
+    font-family: var(--font-default);
+    color: var(--color-25);
+}
+
+/* ===========================
+   TABLEAU UID/NOM PROPORTION
+=========================== */
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1px;
+}
+
+.custom-table th,
+.custom-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+
+.custom-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+/* Proportions personnalisées */
+.custom-table .col-id {
+    width: 12.5%;
+}
+
+.custom-table .col-nom {
+    width: 87.5%;
+}
+
+/* ===========================
+   INFO UID/NOM INLINE
+=========================== */
+.inline-info {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: var(--font-default);
+    font-weight: bold;
+    white-space: nowrap; /* empêche le retour à la ligne */
+    width: fit-content;  /* largeur selon le contenu */
+    height: fit-content; /* hauteur selon le contenu */
+}
+
+/* ===========================
+   INFO UID/NOM EN 4 BLOCS
+=========================== */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px; /* espace entre les blocs */
+    padding: 8px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: var(--font-default);
+    font-weight: bold;
+}
+
+.info-block {
+    flex: 1;
+    text-align: center;
+}
+
+.flex-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px; /* espace entre les blocs */
+    align-items: center;
+    padding: 8px;
+}
+
+.flex-block {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-family: var(--font-default);
+    font-weight: bold;
+    white-space: nowrap; /* empêche le retour à la ligne */
+}
+
+/* ===========================
+   THEME CLAIR / SOMBRE
+=========================== */
+body.light-theme {
+    background: linear-gradient(135deg, #f9f9f9, #eaeaea);
+    color: #333;
+    padding-top: 60px;
+}
+
+body.dark-theme {
+    background: linear-gradient(135deg, #1e1e1e, #2c2c2c);
+    color: #f1f1f1;
+}
+
+/* ===========================
+   SWITCH THEME
+=========================== */
+.theme-toggle {
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    padding: 8px 12px;
+    background: #0078d4;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* ===========================
+   COMPOSANTS PERSONNALISÉS
+=========================== */
+/* Nouveaux footer personnalisé */
+.custom-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #FFC600; 
+    color: black;
+    text-align: center;
+    font-size: 12px;
+    padding: 10px;
+    font-family: var(--font-default);
+    z-index: 999; /* pour rester au-dessus */
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+.custom-footer p {
+    margin: 0;;
+}
+
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.footer-left,
+.footer-center,
+.footer-right {
+    flex: 1;
+    text-align: center;
+}
+
+.footer-left {
+    text-align: left;
+}
+
+.footer-right {
+    text-align: right;
+}
+
+/* ===========================
+   FOOTER PERSONNALISÉ
+=========================== */
+
+/* Nouveau header personnalisé */
+.custom-header {
+    background-color: #1f4e79;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.custom-header .custom-title {
+    font-family: var(--font-title-bold);
+    font-size: var(--font-size-title);
+}
+
+
+.header-container {
+    position: relative;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    justify-content: space-between;
+    text-align: center;
+    background-color: #FFC600; 
+    color: black;
+    padding: 1px;
+    font-size: 12px;
+    font-family: var(--font-default);
+    z-index: 999; /* pour rester au-dessus */
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+.header-container h5{
+    font-family: var(--font-default);
+    margin: 0;;
+}
+
+
+/* Conteneur principal centré */
+.full-width-container {
+    position: fixed;
+    top: 74px;
+    width: 100% !important;
+    margin: 0;
+    padding: 1px;
+}
+
+.header-left ,
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.header-left img,
+.header-right img {
+    height: 40px;
+}
+
+.header-title {
+    font-family: var(--font-title-bold);
+    font-size: var(--font-size-title);
+    color: black;
+    text-align: center;
+}
+
+.header-nav a {
+    font-family: var(--font-default);
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+
+body.sidebar-open .header-container,
+body.sidebar-open .custom-footer {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+
+}
+.main-section {
+    padding: 20px;
+    font-family: var(--font-default);
+}
+
+/* Titre centré */
+.body-title {
+    text-align: center;
+    font-family: var(--font-title-bold);
+    color: var(--color-3);
+    font-size: 1.8rem;
+}
+
+
+/* Sous-titre centré */
+.body-subtitle {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Tabs container */
+.tabs-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+
+.tab-item {
+    background-color: var(--color-1);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    flex: 1 1 150px;
+}
+
+.tab-item:hover {
+    background-color: var(--color-2);
+}
+
+.section-title {
+    text-align: center;
+    font-family: var(--font-title-bold);
+    color: var(--color-3);
+}
+
+.section-subtitle {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.metric-box {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+    transition: background 0.3s;
+}
+body.dark-theme .metric-box {
+    background: #2c2c2c;
+}
+
+.alert-box {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+}
+body.dark-theme .alert-warning {
+    background: #4a3f2c;
+    color: #f9e79f;
+}
+body.dark-theme .alert-success {
+    background: #2e4a36;
+    color: #a9dfbf;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.tab-item {
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: #0078d4;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+.tab-item:hover {
+    background: #005a9e;
+}
+body.dark-theme .tab-item {
+    background: #444;
+}
+
+.col1-custom {
+    display: inline-block;
+    width: fit-content;
+    flex: 0 0 auto;
+}
+.col2-buttons {
+    display: flex;
+    gap: 10px; /* espace entre les boutons */
+    justify-content: flex-end; /* aligne à droite */
+    align-items: center;
+}
+
+.col2-buttons > div[data-testid="stButton"] {
+    display: inline-block !important; /* Force les boutons à être côte à côte */
+}
+.alert-indicateur {
+    height: 80px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+}
+
+/* Conteneur badges (alignement horizontal) */
+.badges {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+
+/* Badge générique */
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.badge--public {
+    background: var(--color-4);
+    color: #fff;
+}
+.badge--restreint {
+    background: var(--color-7);
+    color: #fff;
+}
+
+/* Base */
+html, body, .stApp {
+    font-family: var(--font-default);
+}
+
+/* (Option) Responsive : une colonne sur mobile */
+@media (max-width: 600px) {
+  .badges-row { grid-template-columns: 1fr; }
+}
+
+
+/* ===== Panneau "Statut global & Top" ===== */
+.panel {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.panel__title {
+  font-weight: 700;
+  color: var(--color-22);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badges statut global */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+}
+.status--ok      { background: var(--color-4); }   /* vert */
+.status--warn    { background: var(--color-7); }   /* orange */
+.status--ko      { background: var(--color-6); }   /* rouge */
+.status--indet   { background: var(--color-15); }  /* gris */
+
+/* Background: var(--color-6); }
+
+/* Tableau top (en-tête) */
+.top-table-title {
+  font-weight: 700;
+  color: var(--color-22);
+  margin: 8px 0 6px 0;
+}
+
+/* Petite légende facultative */
+.legend {
+  color: var(--color-12);
+  font-size: 0.85rem;
+}
+
+
+
+/* ===========================
+   KPI inline (sans fond/bordure)
+=========================== */
+
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-family: var(--font-default);
+}
+
+/* Élément KPI (inline) */
+.kpi__item {
+  display: inline-block;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  font-weight: 600;           /* un peu de poids pour lisibilité */
+  padding: 0;                 /* pas de padding -> pas d'effet badge/pill */
+  border: none;               /* pas de bordures */
+  background: none;           /* pas de fond */
+}
+
+/* Valeur principale (JDD) */
+.kpi__value.kpi--primary {
+  color: var(--color-6);      /* rouge élégant */
+  font-weight: 700;
+}
+
+/* Variantes de couleur (texte uniquement) */
+.kpi--public { 
+  color: var(--color-4);      /* vert */
+}
+.kpi--restreint { 
+  color: var(--color-7);      /* orange */
+}
+.kpi--nonpublic { 
+  color: var(--color-6);      /* rouge */
+}
+.kpi--nonrestreint { 
+  color: var(--color-15);     /* gris */
+}
+
+/* Responsive léger : réduit l'espacement en mobile */
+@media (max-width: 600px) {
+  .kpi-row { gap: 8px; }
+  .kpi__item { font-size: 0.9rem; }
+}
+
+
+
+/* ===== Tableau d'indicateurs (texte pur, sans fond/bordure) ===== */
+.kpi-table {
+  width: 100%;
+  border-collapse: collapse;     /* supprime les doubles bordures */
+  font-family: var(--font-default);
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin: 6px 0 10px 0;
+}
+
+.kpi-table th,
+.kpi-table td {
+  border: none;                  /* pas de bordure */
+  background: transparent;       /* pas de fond */
+  padding: 4px 8px;              /* léger espacement pour respirer */
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* libellés à droite, chiffres à gauche (lisibilité) */
+.kpi-table .col-label { font-weight: 600; color: var(--color-22); }
+.kpi-table .col-value { font-weight: 700; }
+
+/* Couleurs par ligne/cellule */
+.kpi-table .val-total        { color: var(--color-6); }   /* rouge élégant */
+.kpi-table .val-public       { color: var(--color-4); }   /* vert */
+.kpi-table .val-restreint    { color: var(--color-7); }   /* orange */
+.kpi-table .val-nonpublic    { color: var(--color-6); }   /* rouge */
+.kpi-table .val-nonrestreint { color: var(--color-15); }  /* gris */
+
+/* Ligne d'info filtrage */
+.kpi-table .info-filter {
+  font-weight: 500;
+  color: var(--color-12);
+  padding-top: 6px;
+}
+
+/* Responsive léger */
+@media (max-width: 600px) {
+  .kpi-table { font-size: 0.9rem; }
+  .kpi-table th, .kpi-table td { padding: 3px 6px; }
+}
+
+
+
+/* ===========================
+   Tableau KPI moderne (CSS Grid)
+   - sans fond ni bordure
+   - couleurs de la charte 2025
+=========================== */
+
+.kpi-board {
+  display: grid;
+  grid-template-columns: 1fr;            /* 1 colonne par défaut */
+  gap: 8px;
+  font-family: var(--font-default);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  margin: 10px 0 12px;
+}
+
+/* Ligne 1 : total (centré) */
+.kpi-row-total {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+}
+.kpi-total {
+  color: var(--color-6);                 /* rouge élégant */
+  font-weight: 700;
+}
+
+/* Lignes 2 et 3 : deux colonnes (Public/Non public, Restreint/Non restreint) */
+.kpi-row-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Item KPI (texte pur, sans fond ni bordure) */
+.kpi-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;                              /* espace entre icône et libellé/valeur */
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  white-space: nowrap;
+}
+
+/* Couleurs par type */
+.kpi-public        { color: var(--color-4); }   /* vert */
+.kpi-nonpublic     { color: var(--color-6); }   /* rouge */
+.kpi-restreint     { color: var(--color-7); }   /* orange */
+.kpi-nonrestreint  { color: var(--color-15); }  /* gris */
+
+/* Valeur en gras */
+.kpi-value { font-weight: 700; }
+
+/* Ligne 4 : liste d’infos centrée */
+.kpi-row-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+}
+.kpi-info-list {
+  list-style: none;                      /* pas de puces par défaut */
+  padding: 0;
+  margin: 4px 0 0 0;
+  text-align: center;
+  color: var(--color-12);
+  font-weight: 500;
+}
+.kpi-info-list li::before {
+  content: "• ";
+  color: var(--color-12);
+}
+
+/* Hover subtil (optionnel) */
+.kpi-item:hover { color: var(--color-22); }
+
+/* Responsive : resserre l’espacement en mobile */
+@media (max-width: 600px) {
+  .kpi-row-cols { gap: 8px; }
+  .kpi-item     { font-size: 0.9rem; }
+}
+
+
+
+.kpi-modern {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-default);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  margin: 8px 0 10px;
+
+  /* Bordure noire subtile */
+  border: 2px solid #000; /* noir légèrement épais */
+  border-radius: 6px;     /* coins arrondis pour modernité */
+  overflow: hidden;       /* arrondis effectifs */
+}
+
+/* Cellules : pas de bordure interne */
+.kpi-modern td {
+  border: none;
+  padding: 6px 8px;
+}
+
+/* Option : zébrage léger ou fond neutre */
+.kpi-modern tbody tr:nth-child(odd) td {
+  background: color-mix(in srgb, var(--color-22) 4%, transparent);
+}
+

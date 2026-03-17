@@ -1,0 +1,127 @@
+1. Couche Domaine Fonctionnel
+Objectif : cœur métier, indépendant de toute technologie.
+Contenu : 
+•	entites.py → Définit les structures métier (ex. JDD, Flux, Alerte).
+•	logiques.py → Fonctions pures pour règles métier (ex. validation, calculs).
+•	ports.py → Interfaces abstraites (ex. JddQueryRepository, NotificationService).
+Principe : aucune dépendance vers infra ou UI.
+
+2. Couche Cas d’Usages Applicatifs
+Objectif : orchestration des règles métier pour répondre à des scénarios. 
+Contenu : 
+•	services.py → Implémente les use cases (ex. “Surveiller flux”, “Générer rapport qualité”).
+•	correspondances.py → Mappers entre Domain et Infra (ex. conversion dict → entité).
+Principe : dépend uniquement du domaine et des ports.
+
+3. Couche Infrastructure Technique
+Objectif : orchestration des règles métier pour répondre à des scénarios. 
+Contenu : 
+•	services.py → Implémente les use cases (ex. “Surveiller flux”, “Générer rapport qualité”).
+•	correspondances.py → Mappers entre Domain et Infra (ex. conversion dict → entité).
+Principe : dépend uniquement du domaine et des ports.
+
+4. Couche Interface Utilisateurs
+Objectif : présentation (Streamlit). 
+Contenu : 
+•	page_standard.py → Layout commun.
+•	_composants.py → Widgets réutilisables.
+•	Pages (pages/_*.py) → Appellent les use cases, jamais l’infra directement.
+Principe : dépend des cas d’usages, pas du domaine ni de l’infra.
+
+
+
+
+
+Injection manuelle : 
+Au démarrage, création des instances concrètes des ports et passage aux services. 
+Tests : 
+Mocker les ports pour tester les use cases sans toucher à l’infra. 
+Évolutivité 
+
+
+
+
+from typing import Dict, Any, Tuple
+import requests
+
+def _chaine_de_caractere(val: Any, default: str = "") -> str:
+    return str(val).strip() if isinstance(val, str) and val.strip() else default
+
+def _entier(val: Any, default: int) -> int:
+    try:
+        if val is None or val == "":
+            return default
+        return int(val)
+    except Exception:
+        return default
+
+def lire_params_connecteur_racine(
+    connecteurs: Dict[str, Dict[str, Any]],
+    nom: str
+) -> Tuple[str, str, Dict[str, str], Any, int, int]:
+    """
+    Lit proprement les paramètres du sous-dict 'nom' dans un dict de dicts 'connecteurs'.
+
+    Retourne:
+    - base_url (str)   -> pour les connecteurs HTTP; pour les connecteurs fichier, peut contenir le chemin
+    - api_key (str)    -> vide si non applicable
+    - proxies (dict[str, str]) -> {} si non applicable
+    - session_cls (class)      -> requests.Session si non applicable
+    - limit (int)       -> default 1000 si None
+    - timeout (int)     -> default 15 si None
+
+    - Pour les connecteurs HTTP (API): base_url est requis (non vide)
+    - Pour les connecteurs FICHIER (Excel/Blob/etc.): base_url peut être un chemin fichier; on ne lève pas d'erreur si vide, mais on le signale en retour.
+
+    Lève ValueError uniquement si le connecteur est HTTP et que base_url manque.
+    """
+    bloc = connecteurs.get(nom, {}) or {}
+
+    base_url: str = _chaine_de_caractere(bloc.get("param1"), "")
+    api_key: str = _chaine_de_caractere(bloc.get("param2"), "")
+    proxies: Dict[str, str] = bloc.get("param3") or {}
+    session_cls = bloc.get("param4") or requests.Session
+    limit: int = _entier(bloc.get("param5"), 1000)
+    timeout: int = _entier(bloc.get("param6"), 15)
+
+    # Déterminer si c'est un connecteur de type HTTP (API) ou Fichier
+    # -> Ici, on se base sur le nom; adapte la logique si besoin
+    CONNECTEURS_HTTP = {"connecteur_api_cataloge", "connecteur_api_ressources"}
+    CONNECTEURS_FICHIER = {"connecteur_excel_blob_monitoring"}
+
+    if nom in CONNECTEURS_HTTP:
+        if not base_url:
+            raise ValueError(f"[connecteur '{nom}'] param1 (base_url) est requis et ne doit pas être vide.")
+        # proxies doit être un dict; si None -> {}
+        if not isinstance(proxies, dict):
+            proxies = {}
+        return base_url, api_key, proxies, session_cls, limit, timeout
+
+    elif nom in CONNECTEURS_FICHIER:
+        # Ici, 'base_url' est plutôt un chemin fichier; on ne lève pas si vide,
+        # mais on renvoie les defaults cohérents (proxies={}, session_cls=requests.Session)
+        if not isinstance(proxies, dict):
+            proxies = {}
+        return base_url, api_key, proxies, session_cls, limit, timeout
+
+    # Par défaut: même traitement que HTTP (si tu préfères plus strict)
+    if not base_url:
+        # Si tu préfères silencieux:
+        # return base_url, api_key, proxies, session_cls, limit, timeout
+        raise ValueError(f"[connecteur '{nom}'] param1 (base_url/chemin) est requis et ne doit pas être vide.")
+    if not isinstance(proxies, dict):
+        proxies = {}
+    return base_url, api_key, proxies, session_cls, limit, timeout
+
+
+
+chemin_excel, _, _, _, _, _ = lire_params_connecteur_racine(
+    Configurations.CONNECTEURS, "connecteur_excel_blob_monitoring"
+)
+if not chemin_excel:
+    # message explicite plutôt que crash
+    st.warning("[Blob Monitoring] Aucun chemin Excel fourni dans param1.")
+else:
+    # charger le fichier
+    # pandas.read_excel(chemin_excel, sheet_name="MonitorBlob(app)", engine="openpyxl") ...
+    pass
