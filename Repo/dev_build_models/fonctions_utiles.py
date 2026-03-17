@@ -422,7 +422,7 @@ class Model_Prediction_Frequence(BaseEstimator):
         return stats_test
 
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        """Save model pipeline and metadata to a pickle artifact."""
+        """Save model pipeline and metadata to a pickle | json artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
