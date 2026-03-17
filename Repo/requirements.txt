@@ -1,47 +1,62 @@
-# Dépendances minimales (strict minimum utilisé par les scripts)
-# - Contient uniquement les paquets effectivement importés dans les scripts
-# - Commentaires en français pour guider les développeurs
+# =============================================================================
+# requirements.txt — Dépendances complètes du projet
+# =============================================================================
+# Couvre tous les sous-projets :
+#   - dev_build_models/   → entraînement des modèles ML
+#   - prod_api_rest/app/api/       → API REST FastAPI
+#   - prod_api_rest/app/src/frontend/ → interface Streamlit
+#
+# Installation rapide (environnement virtuel) :
+#   python -m venv .venv
+#   source .venv/bin/activate          # Linux/macOS
+#   .venv\Scripts\activate             # Windows
+#   pip install -r requirements.txt
+#
+# Recommandé pour la reproductibilité exacte (conda) :
+#   conda env create -f environment.yml
+#   conda activate env_MATHS_FINANCE_DS_ML
+#
+# Les modules de la bibliothèque standard (os, sys, json, pickle, typing…)
+# ne sont pas listés.
+# =============================================================================
 
-# Paquets essentiels (installer via `pip install -r requirements.txt`)
+
+# -----------------------------------------------------------------------------
+# Core — partagé par tous les sous-projets
+# -----------------------------------------------------------------------------
 numpy==1.26.4
-pandas
-scikit-learn
-tqdm
+pandas==2.2.3
 
-# Remarques :
-# - `pandas` et `scikit-learn` peuvent provenir de builds conda (apparaissent
-#   parfois comme `package @ file://...` dans `pip freeze`). Si vous utilisez
-#   conda, préférez créer l'env via `environment.yml` pour une reproduction exacte.
-# - N'ajoutez ici que les paquets nécessaires à l'exécution des scripts.
-# - Pour enrichir ce fichier automatiquement depuis l'env en retirant
-#   les entrées locales conda :
-#     pip freeze | grep -v "@ file://" > requirements.txt
-# Dépendances minimales pour `dev_build_models` et `prod_api_rest`
 
-# Remarques :
-# - Certaines entrées de `pip freeze` peuvent apparaître sous la forme
-#   `package @ file://...` lorsque les paquets proviennent de builds conda locaux.
-#   Ces lignes ne se convertissent pas proprement en `package==version` pour pip.
-#   Pour une reproduction exacte de l'environnement, il est recommandé d'utiliser
-#   un `environment.yml` (exemple dans `environment.yml`).
-# - Les modules de la bibliothèque standard (os, sys, json, pickle, datetime, typing, ...)
-#   ne sont pas listés.
+# -----------------------------------------------------------------------------
+# ML — dev_build_models (entraînement fréquence + sévérité)
+# -----------------------------------------------------------------------------
+scikit-learn==1.5.2
+tqdm>=4.66
 
-# Paquets identifiés par intersection (présents dans le code et dans l'environnement) :
 
-# Épinglé quand disponible
-numpy==1.26.4
+# -----------------------------------------------------------------------------
+# API REST — prod_api_rest/app/api (FastAPI)
+# -----------------------------------------------------------------------------
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
 
-# Présents dans l'environnement mais fournis comme wheels conda (à pinner via conda si besoin)
-pandas
-scikit-learn
-tqdm
-FastApi
 
-# Instructions rapides :
-# - Pour reproduire avec `pip` (approche simple) :
-#     python -m venv .venv
-#     source .venv/bin/activate
-#     pip install -r requirements.txt
-# - Pour reproduire fidèlement avec `conda` (recommandé si l'origine est conda) :
-#     conda env create -f environment.yml
+# -----------------------------------------------------------------------------
+# Frontend — prod_api_rest/app/src/frontend (Streamlit)
+# -----------------------------------------------------------------------------
+streamlit>=1.30
+sqlalchemy>=2.0
+plotly>=5.18
+openpyxl>=3.1
+toml>=0.10
+requests>=2.31
+
+
+# -----------------------------------------------------------------------------
+# Dev / Tests
+# -----------------------------------------------------------------------------
+pytest>=7.4
+httpx>=0.27          # client HTTP async pour tester l'API FastAPI
+ruff>=0.4            # linter/formateur

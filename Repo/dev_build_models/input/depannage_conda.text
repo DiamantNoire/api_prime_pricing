@@ -220,3 +220,11 @@ Remarques et bonnes pratiques
 - En cas de conflit lors du merge/rebase, résous localement puis `git add` + `git rebase --continue` ou `git commit` selon la stratégie.
 
 
+
+
+
+
+sudo chown -R cytech:cytech "/data/ECOLE/COURS_ECOLE/COURS/2025-2026/S1/UE Maths et Info/Data Science/v1/.git"
+git pull origin dev_charly --no-rebase
+
+git push origin dev_charly
