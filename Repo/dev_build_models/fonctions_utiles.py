@@ -13,6 +13,7 @@
 # 1- ---- IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 # --- Standard library ---
+import json
 import os
 import pickle
 from datetime import datetime
@@ -421,8 +422,10 @@ class Model_Prediction_Frequence(BaseEstimator):
 
         return stats_test
 
+    
+
     def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        """Save model pipeline and metadata to a pickle artifact."""
+        """Save model pipeline and metadata to a pickle | json artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
@@ -940,6 +943,16 @@ class Model_Prediction_Severite(BaseEstimator):
                 pickle.dump(artifact, f)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du modèle: {e}")
+
+
+    def save_pure_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+        """Save only the fitted model object without metadata or pipeline."""
+        try:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(model_, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde du modèle pur: {e}")
 
     def load_model(self, filepath: str):
         """Load model artifact and restore tracked model attributes."""

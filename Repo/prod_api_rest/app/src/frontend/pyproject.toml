@@ -1,15 +1,32 @@
-[tool.poetry]
-name = "prediction"
-version = "0.0"
-description = "Prédiction d'une prime d'assurance automobile"
-authors = ["Ance - Serge - Ance"]
-license = "OpenSource"
-readme = "README.md"
+[project]
+name = "prime-pricing-frontend"
+version = "1.0.0"
+description = "Application web Streamlit – prédiction de prime d'assurance automobile"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.30",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "sqlalchemy>=2.0",
+    "toml>=0.10",
+    "plotly>=5.18",
+    "openpyxl>=3.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-
+[dependency-groups]
+dev = [
+    "pytest>=7.4",
+]
+lint = [
+    "ruff>=0.4",
+]
+docs = [
+    "mkdocs>=1.5",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
