@@ -1,0 +1,73 @@
+name: CI API Prime Pricing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  dev:
+    name: Environnement de développement et tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Installer uv
+        run: pip install uv
+      - name: Installer les dépendances (prod + dev)
+        run: uv pip install -r requirements.txt
+      - name: Lancer les tests unitaires
+        run: python -m unittest discover -s src/models/tests
+
+  lint:
+    name: Linting avec ruff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Installer uv
+        run: pip install uv
+      - name: Installer ruff
+        run: uv pip install ruff
+      - name: Lint du code
+        run: ruff check src/ --output-format=github
+
+  docker:
+    name: Build & Test Docker
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:24.0.7-dind
+        options: >-
+          --dns 8.8.8.8
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        run: docker-compose build
+      - name: Lancer les services (api, init_db)
+        run: docker-compose up -d api init_db
+      - name: Attendre que l'API soit prête
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:8000/docs; then
+              echo 'API UP'; exit 0;
+            fi
+            sleep 2
+          done
+          echo 'API DOWN'; docker-compose logs api; exit 1
+      - name: Tester les endpoints FastAPI (curl)
+        run: |
+          curl -f http://localhost:8000/docs
+          curl -f http://localhost:8000/openapi.json
+          # Ajoute ici d'autres endpoints à tester (exemple)
+          # curl -f -X POST http://localhost:8000/ton_endpoint -d '{"key": "value"}' -H 'Content-Type: application/json'
+      - name: Lancer les tests unitaires et le lint dans le conteneur test
+        run: docker-compose run --rm test
+      - name: Afficher les logs API
+        run: docker-compose logs api
+      - name: Arrêter les conteneurs
+        run: docker-compose down

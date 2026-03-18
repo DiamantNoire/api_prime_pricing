@@ -1,0 +1,47 @@
+
+  # ===============================
+  # docker-compose.yml pour l'API Prime Pricing
+  # ===============================
+  version: '3.9'
+
+  services:
+    api:
+      build: .
+      container_name: api_prime_pricing
+      command: uvicorn src/api/backend/server:app --host 0.0.0.0 --port 8000
+      ports:
+        - "8000:8000"
+      volumes:
+        - .:/app
+        - db_data:/app/db
+      environment:
+        - PYTHONUNBUFFERED=1
+        - DB_PATH=db/prime_pricing.sqlite
+
+    init_db:
+      build: .
+      command: python src/api/init_db.py
+      volumes:
+        - .:/app
+        - db_data:/app/db
+      environment:
+        - DB_PATH=db/prime_pricing.sqlite
+      depends_on:
+        - api
+
+    test:
+      build: .
+      command: >
+        /bin/bash -c "python -m unittest discover -s src/models/tests && \
+        ruff check src/ --output-format=github"
+      volumes:
+        - .:/app
+      environment:
+        - PYTHONUNBUFFERED=1
+        - DB_PATH=db/prime_pricing.sqlite
+      depends_on:
+        - api
+        - init_db
+
+  volumes:
+    db_data:
