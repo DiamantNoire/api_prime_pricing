@@ -39,7 +39,7 @@ def fill_predictions():
 
 def run_api():
     import uvicorn
-    uvicorn.run("src.api.backend.df_creation:init_db", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.api.backend.server:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":
     actions = {

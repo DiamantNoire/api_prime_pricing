@@ -2,19 +2,14 @@
 # requirements.txt — Dépendances complètes du projet
 # =============================================================================
 # Couvre tous les sous-projets :
-#   - dev_build_models/   → entraînement des modèles ML
-#   - prod_api_rest/app/api/       → API REST FastAPI
-#   - prod_api_rest/app/src/frontend/ → interface Streamlit
+#   - src/models/           → entraînement des modèles ML
+#   - src/api/backend/      → API REST FastAPI
+#   - src/api/frontend/     → interface Streamlit
 #
-# Installation rapide (environnement virtuel) :
-#   python -m venv .venv
-#   source .venv/bin/activate          # Linux/macOS
-#   .venv\Scripts\activate             # Windows
-#   pip install -r requirements.txt
-#
-# Recommandé pour la reproductibilité exacte (conda) :
-#   conda env create -f environment.yml
-#   conda activate env_MATHS_FINANCE_DS_ML
+# Installation avec uv (recommandé) :
+#   uv venv --python /usr/bin/python3.11
+#   source .venv/bin/activate
+#   uv pip install -r requirements.txt
 #
 # Les modules de la bibliothèque standard (os, sys, json, pickle, typing…)
 # ne sont pas listés.
@@ -32,6 +27,7 @@ pandas==2.2.3
 # ML — dev_build_models (entraînement fréquence + sévérité)
 # -----------------------------------------------------------------------------
 scikit-learn==1.5.2
+xgboost>=2.0
 tqdm>=4.66
 
 

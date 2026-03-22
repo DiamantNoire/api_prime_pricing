@@ -34,23 +34,28 @@ if __name__ == "__main__":
     # =============================================
     # --- Chemin ---
     DATA_DIR = os.path.dirname(__file__)
+    PROJECT_ROOT = os.path.abspath(os.path.join(DATA_DIR, '..', '..'))
 
     # --- Input ---
-    TRAIN_PATH = os.path.join(DATA_DIR, 'input/train.csv')
-    TEST_PATH = os.path.join(DATA_DIR, 'input/test.csv')
+    TRAIN_PATH = os.path.join(PROJECT_ROOT, 'asset', 'train.csv')
+    TEST_PATH = os.path.join(PROJECT_ROOT, 'asset', 'test.csv')
 
     # --- Output ---
-    OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/feature_engineering/features_severite.pickle')
-    OUTPUT_MODEL_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_severite.pickle')
-    OUTPUT_TEST_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/predictions/test_predictions_severite.csv')
-    OUTPUT_METRICS_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/metrics/metrics_severite.json')
-    OUTPUT_PIPELINE_SEVERITE_ARTIFACT_PATH = os.path.join(DATA_DIR, 'sorties/pipeline/pipeline_severite.pickle')
-    OUTPUT_COMPLETE_ARTIFACT_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/artifacts/complete_artifact_severite.pickle')
-    OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/artifacts/synthetic_artifact_severite.pickle')
+    OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/feature_engineering/features_severite.pickle')
+    OUTPUT_MODEL_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/modeles/model_severite.pickle')
+    OUTPUT_TEST_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/predictions/test_predictions_severite.csv')
+    OUTPUT_METRICS_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/metrics/metrics_severite.json')
+    OUTPUT_PIPELINE_SEVERITE_ARTIFACT_PATH = os.path.join(DATA_DIR, 'output/pipeline/pipeline_severite.pickle')
+    OUTPUT_PIPELINE_SEVERITE_JSON_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_severite.json')
+    OUTPUT_COMPLETE_ARTIFACT_SEVERITE_PATH = OUTPUT_PIPELINE_SEVERITE_JSON_PATH
+    OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/artifacts/synthetic_artifact_severite.json')
     
     os.makedirs(os.path.dirname(OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_MODEL_SEVERITE_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(OUTPUT_TEST_SEVERITE_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(OUTPUT_METRICS_SEVERITE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_PIPELINE_SEVERITE_ARTIFACT_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(OUTPUT_PIPELINE_SEVERITE_JSON_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_COMPLETE_ARTIFACT_SEVERITE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH), exist_ok=True)
 
@@ -154,7 +159,7 @@ if __name__ == "__main__":
     model_severite = Model_Prediction_Severite()
 
     tuning_results = run_step(
-        'Tune GradientBoostingRegressor',
+        'Tune XGBRegressor',
         model_severite.tune_GBRegressor_hyperparameters,
         X_train_copie_severite,
         y_train_copie_severite

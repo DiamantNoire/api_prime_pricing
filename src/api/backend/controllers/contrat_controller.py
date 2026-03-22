@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import  HTMLResponse
-from backend.repositories.contrat_repository import ContratRepository
+from fastapi.responses import HTMLResponse
+from src.api.backend.repositories.contrat_repository import ContratRepository
 
 contrat_router=APIRouter()
 contrat_repo = ContratRepository()

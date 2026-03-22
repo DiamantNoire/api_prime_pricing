@@ -22,6 +22,7 @@ if __name__ == "__main__":
     #-------- CHARGEMENT DES DONNEES -------------#
     # =============================================
     DATA_DIR = os.path.dirname(__file__)
+    PROJECT_ROOT = os.path.abspath(os.path.join(DATA_DIR, '..', '..'))
 
     # --- Input ---
     TRAIN_PATH = os.path.join(DATA_DIR, 'input/train.csv')
@@ -32,6 +33,7 @@ if __name__ == "__main__":
     OUTPUT_MODEL_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_frequence.pickle')
     OUTPUT_METRICS_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/metrics/metrics_frequence.json')
     OUTPUT_TEST_PRED_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/predictions/test_predictions_frequence.csv')
+    OUTPUT_PIPELINE_FREQUENCE_JSON_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_frequence.json')
     OUTPUT_COMPLETE_ARTIFACT_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/artifacts/complete_artifact_frequence.pickle')
     OUTPUT_SYNTHETIC_ARTIFACT_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/artifacts/synthetic_artifact_frequence.pickle')
 
@@ -39,6 +41,7 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(OUTPUT_SYNTHETIC_ARTIFACT_FREQUENCE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_FEATURE_ENGINEERING_FREQUENCE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_MODEL_FREQUENCE_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(OUTPUT_PIPELINE_FREQUENCE_JSON_PATH), exist_ok=True)
 
     df_train = run_step('Chargement train.csv', pd.read_csv, TRAIN_PATH)
     df_test = run_step('Chargement test.csv', pd.read_csv, TEST_PATH)
@@ -234,6 +237,14 @@ if __name__ == "__main__":
         model_frequence.save_model,
         model_frequence,
         OUTPUT_MODEL_FREQUENCE_PATH,
+        {"metrics": metrics_all}
+    )
+
+    run_step(
+        'Save pure model frequence (JSON)',
+        model_frequence.save_pure_model,
+        model_frequence,
+        OUTPUT_PIPELINE_FREQUENCE_JSON_PATH,
         {"metrics": metrics_all}
     )
 
