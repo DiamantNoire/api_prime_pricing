@@ -18,7 +18,7 @@
 import os
 import re 
 import json
-import tempfile
+import base64
 import sqlite3
 import requests
 
@@ -49,11 +49,6 @@ from sklearn.metrics import (
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
-try:
-    from xgboost import XGBRegressor
-except ImportError:  # pragma: no cover
-    XGBRegressor = None
 
 
 
@@ -461,37 +456,44 @@ class Model_Prediction_Frequence(BaseEstimator):
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du modèle fréquence: {e}")
 
-    def save_pure_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        """Save model metadata and hyperparameters as JSON (no pickle)."""
-        try:
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            artifact = {
-                "model_name_": self.model_name_,
-                "selected_features_": self.selected_features_,
-                "fill_values_": self.fill_values_,
-                "best_params_": self.best_params_,
-                "best_score_": self.best_score_,
-                "metadata": {
-                    "saved_at": datetime.utcnow().isoformat(),
-                    **(metadata or {}),
-                }
-            }
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(artifact, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"Erreur lors de la sauvegarde du modèle pur fréquence: {e}")
-
     def load_model(self, filepath: str):
-        """Load model metadata from JSON artifact and restore model attributes."""
+        """Load model artifact from JSON (preferred) or pickle (legacy)."""
+        # Preferred format: JSON complete artifact.
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 loaded = json.load(f)
+
             if isinstance(loaded, dict):
                 self.model_name_ = loaded.get("model_name_", self.model_name_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
-                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
+                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
+                self.history_ = loaded.get("history_", self.history_)
+
+                pipeline_b64 = loaded.get("pipeline_b64")
+                if pipeline_b64:
+                    self.pipeline_ = pickle.loads(base64.b64decode(pipeline_b64.encode('ascii')))
+
+                best_estimator_b64 = loaded.get("best_estimator_b64")
+                if best_estimator_b64:
+                    self.best_estimator_ = pickle.loads(base64.b64decode(best_estimator_b64.encode('ascii')))
+
+                return loaded
+        except Exception:
+            pass
+
+        # Legacy fallback: pickle artifact.
+        try:
+            with open(filepath, 'rb') as f:
+                loaded = pickle.load(f)
+            if isinstance(loaded, dict):
+                self.pipeline_ = loaded.get("pipeline_", self.pipeline_)
+                self.best_estimator_ = loaded.get("best_estimator_", self.best_estimator_)
+                self.best_params_ = loaded.get("best_params_", self.best_params_)
+                self.best_score_ = loaded.get("best_score_", self.best_score_)
+                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 return loaded
             return None
         except Exception as e:
@@ -503,29 +505,27 @@ class Model_Prediction_Frequence(BaseEstimator):
         feature_engineer=None,
         metadata: Optional[Dict[str, Any]] = None
     ):
-        """Save a complete inference artifact with feature engineer and model."""
+        """Save a complete inference artifact as JSON (no pickle file)."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             artifact = {
-                "feature_engineer": feature_engineer,
-                "model_artifact": {
-                    "model_name_": self.model_name_,
-                    "pipeline_": self.pipeline_,
-                    "best_estimator_": self.best_estimator_,
-                    "best_params_": self.best_params_,
-                    "best_score_": self.best_score_,
-                    "selected_features_": self.selected_features_,
-                    "fill_values_": self.fill_values_,
-                    "history_": self.history_,
-                },
+                "artifact_type": "complete_inference_artifact",
+                "model_name_": self.model_name_,
+                "best_params_": self.best_params_,
+                "best_score_": self.best_score_,
+                "selected_features_": self.selected_features_,
+                "fill_values_": self.fill_values_,
+                "history_": self.history_,
+                "pipeline_b64": base64.b64encode(pickle.dumps(self.pipeline_)).decode('ascii'),
+                "best_estimator_b64": base64.b64encode(pickle.dumps(self.best_estimator_)).decode('ascii') if self.best_estimator_ is not None else None,
+                "feature_engineer_class": feature_engineer.__class__.__name__ if feature_engineer is not None else None,
                 "metadata": {
                     "saved_at": datetime.utcnow().isoformat(),
-                    "artifact_type": "complete_inference_artifact",
                     **(metadata or {}),
                 }
             }
-            with open(filepath, "wb") as f:
-                pickle.dump(artifact, f)
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de l'artefact complet fréquence: {e}")
 
@@ -549,16 +549,16 @@ class Model_Prediction_Frequence(BaseEstimator):
                     **(metadata or {}),
                 }
             }
-            with open(filepath, "wb") as f:
-                pickle.dump(artifact, f)
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de l'artefact synthétique fréquence: {e}")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
         try:
-            with open(filepath, 'rb') as f:
-                loaded = pickle.load(f)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
             if isinstance(loaded, dict):
                 return loaded.get("metadata")
             return None
@@ -812,23 +812,10 @@ class Model_Prediction_Severite(BaseEstimator):
 
     def __init__(self):
         """Initialize the severity model pipeline and training metadata."""
-        if XGBRegressor is None:
-            raise ImportError("xgboost est requis pour Model_Prediction_Severite")
-
-        self.model_name_ = "XGBRegressor"
+        self.model_name_ = "GradientBoostingRegressor"
         self.pipeline_ = Pipeline([
-            (
-                "model",
-                XGBRegressor(
-                    objective="reg:squarederror",
-                    random_state=42,
-                    n_estimators=300,
-                    learning_rate=0.05,
-                    max_depth=6,
-                    subsample=0.9,
-                    colsample_bytree=0.9,
-                ),
-            ),
+            ("scaler", StandardScaler()),
+            ("model", GradientBoostingRegressor(random_state=42)),
         ])
         self.best_estimator_ = None
         self.best_params_ = None
@@ -856,7 +843,7 @@ class Model_Prediction_Severite(BaseEstimator):
         return X
 
     def tune_GBRegressor_hyperparameters(self, X, y, param_grid=None, cv=5, scoring='neg_mean_squared_error'):
-        """Tune XGBRegressor hyperparameters via cross-validation."""
+        """Tune GradientBoostingRegressor hyperparameters via cross-validation."""
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -870,11 +857,9 @@ class Model_Prediction_Severite(BaseEstimator):
 
         if param_grid is None:
             param_grid = {
-                'model__n_estimators': [200, 300],
-                'model__learning_rate': [0.03, 0.05, 0.1],
-                'model__max_depth': [4, 6, 8],
-                'model__subsample': [0.8, 1.0],
-                'model__colsample_bytree': [0.8, 1.0],
+                'model__n_estimators': [100, 200, 300],
+                'model__learning_rate': [0.01, 0.1, 0.2],
+                'model__max_depth': [3, 5, 7]
             }
 
         grid_search = GridSearchCV(
@@ -995,54 +980,30 @@ class Model_Prediction_Severite(BaseEstimator):
 
 
     def save_pure_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
-        """Save model metadata and hyperparameters as JSON (no pickle)."""
+        """Save only the fitted model object without metadata or pipeline."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            artifact = {
-                "model_name_": self.model_name_,
-                "selected_features_": self.selected_features_,
-                "fill_values_": self.fill_values_,
-                "best_params_": self.best_params_,
-                "best_score_": self.best_score_,
-                "metadata": {
-                    "saved_at": datetime.utcnow().isoformat(),
-                    **(metadata or {}),
-                }
-            }
             with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(artifact, f, ensure_ascii=False, indent=2)
+                json.dump(model_, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde du modèle pur: {e}")
 
     def load_model(self, filepath: str):
-        """Load model metadata or complete XGBoost artifact from JSON."""
+        """Load model artifact and restore tracked model attributes."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                loaded = json.load(f)
+            with open(filepath, 'rb') as f:
+                loaded = pickle.load(f)
 
             if isinstance(loaded, dict):
                 self.model_name_ = loaded.get("model_name_", self.model_name_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
-                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
+                self.pipeline_ = loaded.get("pipeline_", self.pipeline_)
+                self.best_estimator_ = loaded.get("best_estimator_", self.best_estimator_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
+                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 self.history_ = loaded.get("history_", self.history_)
-
-                # Complete artifact: restore fitted XGBoost model from embedded JSON.
-                xgb_model_json = loaded.get("xgb_model_json")
-                if xgb_model_json:
-                    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-                    tmp_path = tmp.name
-                    tmp.write(xgb_model_json)
-                    tmp.close()
-
-                    model = XGBRegressor(objective="reg:squarederror", random_state=42)
-                    model.load_model(tmp_path)
-                    os.remove(tmp_path)
-                    self.pipeline_ = Pipeline([("model", model)])
-
-                return loaded
-            return None
+            return loaded
         except Exception as e:
             print(f"Erreur lors du chargement du modèle: {e}")
             return None
@@ -1053,39 +1014,29 @@ class Model_Prediction_Severite(BaseEstimator):
         feature_engineer=None,
         metadata: Optional[Dict[str, Any]] = None
     ):
-        """Save a complete inference artifact as JSON (no pickle)."""
+        """Save a complete inference artifact with feature engineer and model."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-            model = self.pipeline_.named_steps.get("model")
-            if model is None:
-                raise ValueError("Aucun estimateur 'model' trouvé dans le pipeline.")
-
-            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-            tmp_path = tmp.name
-            tmp.close()
-            model.save_model(tmp_path)
-            with open(tmp_path, "r", encoding="utf-8") as f:
-                xgb_model_json = f.read()
-            os.remove(tmp_path)
-
             artifact = {
-                "artifact_type": "complete_inference_artifact",
-                "model_name_": self.model_name_,
-                "best_params_": self.best_params_,
-                "best_score_": self.best_score_,
-                "selected_features_": self.selected_features_,
-                "fill_values_": self.fill_values_,
-                "history_": self.history_,
-                "xgb_model_json": xgb_model_json,
-                "feature_engineer_class": feature_engineer.__class__.__name__ if feature_engineer is not None else None,
+                "feature_engineer": feature_engineer,
+                "model_artifact": {
+                    "model_name_": self.model_name_,
+                    "pipeline_": self.pipeline_,
+                    "best_estimator_": self.best_estimator_,
+                    "best_params_": self.best_params_,
+                    "best_score_": self.best_score_,
+                    "selected_features_": self.selected_features_,
+                    "fill_values_": self.fill_values_,
+                    "history_": self.history_,
+                },
                 "metadata": {
                     "saved_at": datetime.utcnow().isoformat(),
+                    "artifact_type": "complete_inference_artifact",
                     **(metadata or {}),
                 }
             }
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(artifact, f, ensure_ascii=False, indent=2)
+            with open(filepath, "wb") as f:
+                pickle.dump(artifact, f)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de l'artefact complet: {e}")
 
@@ -1109,16 +1060,16 @@ class Model_Prediction_Severite(BaseEstimator):
                     **(metadata or {}),
                 }
             }
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(artifact, f, ensure_ascii=False, indent=2)
+            with open(filepath, "wb") as f:
+                pickle.dump(artifact, f)
         except Exception as e:
             print(f"Erreur lors de la sauvegarde de l'artefact synthétique: {e}")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                loaded = json.load(f)
+            with open(filepath, 'rb') as f:
+                loaded = pickle.load(f)
 
             if isinstance(loaded, dict):
                 return loaded.get('metadata', None)
@@ -1142,6 +1093,7 @@ class Data_Base_Creator:
 
     def create_table_historique_contrats(self, csv_path: str):
         """Créer une table historique_contrats à partir du train.csv avec gestion d'erreur."""
+        import pandas as pd
         try:
             df = pd.read_csv(csv_path)
             conn = sqlite3.connect(self.db_path)
@@ -1153,15 +1105,17 @@ class Data_Base_Creator:
 
     def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
+        import pandas as pd
         try:
             df_freq = pd.read_csv(path_pred_frequence)
             df_sev = pd.read_csv(path_pred_severite)
             df_prime = pd.read_csv(path_pred_prime)
 
             # Fusion sur la colonne 'index'
-            df = df_freq[['index', 'pred']].rename(columns={'pred': 'pred_freq'})
+            df = df_freq[['index', 'pred']].rename(columns={'pred': 'pred_frequence'})
             df = df.merge(df_sev[['index', 'pred']].rename(columns={'pred': 'pred_severite'}), on='index', how='left')
-            df = df.merge(df_prime[['index', 'pred']].rename(columns={'pred': 'pred_prime'}), on='index', how='left')
+            df = df.merge(df_prime[['index', 'pred']], on='index', how='left')
+            df = df.rename(columns={'pred': 'pred'})
 
             conn = sqlite3.connect(self.db_path)
             df.to_sql('predictions', conn, if_exists='replace', index=False)
@@ -1169,24 +1123,3 @@ class Data_Base_Creator:
             print("Table predictions créée à partir des fichiers de prédiction.")
         except Exception as e:
             print(f"Erreur lors de la création de la table predictions : {e}")
-
-    def create_table_test_contrats(self, csv_path: str):
-        """Créer une table test_contrats à partir du test.csv avec gestion d'erreur."""
-        try:
-            df = pd.read_csv(csv_path)
-            conn = sqlite3.connect(self.db_path)
-            df.to_sql('test_contrats', conn, if_exists='replace', index=False)
-            conn.close()
-            print(f"Table test_contrats créée à partir de {csv_path}")
-        except Exception as e:
-            print(f"Erreur lors de la création de la table test_contrats : {e}")
-
-    def create_database(self):
-        """Créer le fichier SQLite (et son répertoire si nécessaire)."""
-        try:
-            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-            conn = sqlite3.connect(self.db_path)
-            conn.close()
-            print(f"Base de données initialisée : {self.db_path}")
-        except Exception as e:
-            print(f"Erreur lors de l'initialisation de la base de données : {e}")

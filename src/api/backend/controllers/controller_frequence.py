@@ -55,27 +55,35 @@ DATA_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
 # --- Input ---
-MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_frequence.json')
+MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, "output_models", "modeles", "model_frequence.json")
 os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
-
 
 # =============================================
 #------ ROUTAGE ----------#
 # =============================================
+
 router = APIRouter()
 
+
 def _build_frequence_model() -> Model_Prediction_Frequence:
-    """Instantiate predictor from JSON metadata."""
+    """Instantiate predictor from complete pre-trained JSON artifact."""
     model = Model_Prediction_Frequence()
 
     if not os.path.exists(MODEL_FREQUENCE_PATH):
         raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}")
 
     try:
-        # Charger les métadonnées depuis JSON
-        model.load_model(MODEL_FREQUENCE_PATH)
+        loaded = model.load_model(MODEL_FREQUENCE_PATH)
+        if not isinstance(loaded, dict) or not loaded.get("pipeline_b64"):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Le JSON de fréquence chargé n'est pas un artefact complet. "
+                    "Relancer l'entraînement pour générer 'pipeline_b64'."
+                ),
+            )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur chargement {MODEL_FREQUENCE_PATH}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Erreur chargement artefact frequence JSON: {exc}")
 
     return model
 
@@ -90,6 +98,17 @@ except HTTPException as exc:
     FREQUENCE_MODEL_LOAD_ERROR = str(exc.detail)
 except Exception as exc:
     FREQUENCE_MODEL_LOAD_ERROR = str(exc)
+
+
+@router.get("/predictio_frequence/health")
+def health_predictio_frequence():
+    return {
+        "status": "ok" if FREQUENCE_MODEL is not None else "error",
+        "model_loaded": FREQUENCE_MODEL is not None,
+        "model_path": MODEL_FREQUENCE_PATH,
+        "model_file_exists": os.path.exists(MODEL_FREQUENCE_PATH),
+        "detail": FREQUENCE_MODEL_LOAD_ERROR,
+    }
 
 @router.post("/predict_frequence", response_model=FrequenceOutput)
 def prediction(input_data: FrequenceInput):

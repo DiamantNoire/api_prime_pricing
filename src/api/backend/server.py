@@ -5,13 +5,8 @@
 from fastapi import FastAPI
 from fastapi.responses import Response
 
-
-# =============================================
-#------ IMPORTATIONS DES LIBRAIRIES ----------#
-# =============================================
 from src.api.backend.controllers.controller_severite import router as severite_router
-# from src.api.backend.controllers.controller_frequence import router as frequence_router
-
+from src.api.backend.controllers.controller_frequence import router as frequence_router
 
 # =============================================
 #------ AJOUT DES ENDPOINTS ----------#
@@ -22,7 +17,7 @@ app = FastAPI(
 )
 
 app.include_router(severite_router)
-# app.include_router(frequence_router)
+app.include_router(frequence_router)
 
 @app.get("/")
 def read_root():
@@ -37,7 +32,7 @@ def health():
 def favicon():
     return Response(status_code=204)
 
- 
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("src.api.backend.server:app", host="127.0.0.1", port=8000, reload=True)
