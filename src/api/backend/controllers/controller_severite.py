@@ -2,8 +2,11 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
+import json
+import os
+import pandas as pd
 from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Severite
@@ -52,10 +55,40 @@ class SeveriteOutput(BaseModel):
 
 router = APIRouter()
 
+
+def _build_severite_model() -> Model_Prediction_Severite:
+    """Instantiate predictor from JSON metadata and trained pickle artifact."""
+    model = Model_Prediction_Severite()
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    json_path = os.path.join(project_root, "output_models", "modeles", "model_severite.json")
+    pickle_path = os.path.join(project_root, "output_models", "modeles", "model_severite.pickle")
+
+    if not os.path.exists(json_path):
+        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {json_path}")
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        model.selected_features_ = meta.get("selected_features_", []) or []
+        model.fill_values_ = meta.get("fill_values_", {}) or {}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Erreur lecture model_severite.json: {exc}")
+
+    loaded = model.load_model(pickle_path)
+    if loaded is None:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Impossible de charger model_severite.pickle. "
+                "Le JSON est bien lu, mais le pipeline entraîné n'est pas disponible."
+            ),
+        )
+
+    return model
+
 @router.post("/predict_severite", response_model=SeveriteOutput)
 def prediction(input_data: SeveriteInput):
-    import pandas as pd
-    df = pd.DataFrame([input_data.model_dump()])
-    y_pred = Model_Prediction_Severite().predict(df)
-    return SeveriteOutput(prediction=float(y_pred[0]))
+    df = pd.DataFrame([input_data.model_dump(exclude_none=True)])
+    model = _build_severite_model()
+    y_pred = model.predict(df)
     return SeveriteOutput(prediction=float(y_pred[0]))
