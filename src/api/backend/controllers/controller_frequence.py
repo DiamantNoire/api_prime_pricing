@@ -2,7 +2,6 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
-import json
 import os
 import pandas as pd
 from typing import Optional
@@ -48,6 +47,17 @@ class FrequenceInput(BaseModel):
 class FrequenceOutput(BaseModel):
     prediction: Optional[float] = None
 
+
+# =============================================
+#-------- CHARGEMENT DES DONNEES -------------#
+# =============================================
+DATA_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+# --- Input ---
+MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, "output_models", "modeles", "model_frequence.json")
+os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
+
 # =============================================
 #------ ROUTAGE ----------#
 # =============================================
@@ -56,38 +66,61 @@ router = APIRouter()
 
 
 def _build_frequence_model() -> Model_Prediction_Frequence:
-    """Instantiate predictor from JSON metadata and trained pickle artifact."""
+    """Instantiate predictor from complete pre-trained JSON artifact."""
     model = Model_Prediction_Frequence()
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-    json_path = os.path.join(project_root, "output_models", "modeles", "model_frequence.json")
-    pickle_path = os.path.join(project_root, "output_models", "modeles", "model_frequence.pickle")
 
-    if not os.path.exists(json_path):
-        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {json_path}")
+    if not os.path.exists(MODEL_FREQUENCE_PATH):
+        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}")
 
     try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            meta = json.load(f)
-        model.selected_features_ = meta.get("selected_features_", []) or []
-        model.fill_values_ = meta.get("fill_values_", {}) or {}
+        loaded = model.load_model(MODEL_FREQUENCE_PATH)
+        if not isinstance(loaded, dict) or not loaded.get("pipeline_b64"):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Le JSON de fréquence chargé n'est pas un artefact complet. "
+                    "Relancer l'entraînement pour générer 'pipeline_b64'."
+                ),
+            )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur lecture model_frequence.json: {exc}")
-
-    loaded = model.load_model(pickle_path)
-    if loaded is None:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Impossible de charger model_frequence.pickle. "
-                "Le JSON est bien lu, mais le pipeline entraîné n'est pas disponible."
-            ),
-        )
+        raise HTTPException(status_code=500, detail=f"Erreur chargement artefact frequence JSON: {exc}")
 
     return model
 
+
+# Chargement unique du modèle entraîné au démarrage du module.
+FREQUENCE_MODEL: Optional[Model_Prediction_Frequence] = None
+FREQUENCE_MODEL_LOAD_ERROR: Optional[str] = None
+
+try:
+    FREQUENCE_MODEL = _build_frequence_model()
+except HTTPException as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc.detail)
+except Exception as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc)
+
+
+@router.get("/predictio_frequence/health")
+def health_predictio_frequence():
+    return {
+        "status": "ok" if FREQUENCE_MODEL is not None else "error",
+        "model_loaded": FREQUENCE_MODEL is not None,
+        "model_path": MODEL_FREQUENCE_PATH,
+        "model_file_exists": os.path.exists(MODEL_FREQUENCE_PATH),
+        "detail": FREQUENCE_MODEL_LOAD_ERROR,
+    }
+
 @router.post("/predict_frequence", response_model=FrequenceOutput)
 def prediction(input_data: FrequenceInput):
+    if FREQUENCE_MODEL is None:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Le modèle de fréquence n'est pas disponible. "
+                f"Détail: {FREQUENCE_MODEL_LOAD_ERROR or 'erreur inconnue'}"
+            ),
+        )
+
     df = pd.DataFrame([input_data.model_dump(exclude_none=True)])
-    model = _build_frequence_model()
-    y_pred = model.predict(df)
+    y_pred = FREQUENCE_MODEL.predict(df)
     return FrequenceOutput(prediction=float(y_pred[0]))
