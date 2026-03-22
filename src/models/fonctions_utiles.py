@@ -1067,7 +1067,6 @@ class Data_Base_Creator:
 
     def create_table_historique_contrats(self, csv_path: str):
         """Créer une table historique_contrats à partir du train.csv avec gestion d'erreur."""
-        import pandas as pd
         try:
             df = pd.read_csv(csv_path)
             conn = sqlite3.connect(self.db_path)
@@ -1079,17 +1078,15 @@ class Data_Base_Creator:
 
     def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
-        import pandas as pd
         try:
             df_freq = pd.read_csv(path_pred_frequence)
             df_sev = pd.read_csv(path_pred_severite)
             df_prime = pd.read_csv(path_pred_prime)
 
             # Fusion sur la colonne 'index'
-            df = df_freq[['index', 'pred']].rename(columns={'pred': 'pred_frequence'})
+            df = df_freq[['index', 'pred']].rename(columns={'pred': 'pred_freq'})
             df = df.merge(df_sev[['index', 'pred']].rename(columns={'pred': 'pred_severite'}), on='index', how='left')
-            df = df.merge(df_prime[['index', 'pred']], on='index', how='left')
-            df = df.rename(columns={'pred': 'pred'})
+            df = df.merge(df_prime[['index', 'pred']].rename(columns={'pred': 'pred_prime'}), on='index', how='left')
 
             conn = sqlite3.connect(self.db_path)
             df.to_sql('predictions', conn, if_exists='replace', index=False)
@@ -1097,3 +1094,24 @@ class Data_Base_Creator:
             print("Table predictions créée à partir des fichiers de prédiction.")
         except Exception as e:
             print(f"Erreur lors de la création de la table predictions : {e}")
+
+    def create_table_test_contrats(self, csv_path: str):
+        """Créer une table test_contrats à partir du test.csv avec gestion d'erreur."""
+        try:
+            df = pd.read_csv(csv_path)
+            conn = sqlite3.connect(self.db_path)
+            df.to_sql('test_contrats', conn, if_exists='replace', index=False)
+            conn.close()
+            print(f"Table test_contrats créée à partir de {csv_path}")
+        except Exception as e:
+            print(f"Erreur lors de la création de la table test_contrats : {e}")
+
+    def create_database(self):
+        """Créer le fichier SQLite (et son répertoire si nécessaire)."""
+        try:
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            conn = sqlite3.connect(self.db_path)
+            conn.close()
+            print(f"Base de données initialisée : {self.db_path}")
+        except Exception as e:
+            print(f"Erreur lors de l'initialisation de la base de données : {e}")

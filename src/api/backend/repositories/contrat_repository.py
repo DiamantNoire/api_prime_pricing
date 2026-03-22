@@ -4,8 +4,7 @@ import csv
 class ContratRepository:
 
     def __init__(self):
-        # Chemin absolu vers ton fichier uploadé
-        self.FILE_PATH = "api_prime_pricing/prod_api_rest/train.csv"
+        self.FILE_PATH = "asset/train.csv"
 
     def find_all(self):
         with open(self.FILE_PATH, mode="r", encoding="utf-8") as file:

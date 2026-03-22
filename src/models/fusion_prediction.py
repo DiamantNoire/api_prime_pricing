@@ -16,6 +16,10 @@ CURRENT_DIR = os.path.dirname(__file__)
 if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
+from fonctions_utiles import (run_step,
+                             run_internal_step,
+                             Data_Base_Creator)
+                            
 
 def run_step(step_name: str, func, *args, **kwargs):
     """Exécute une étape du pipeline avec logs simples."""
@@ -88,26 +92,27 @@ if __name__ == "__main__":
     #-------- CHARGEMENT DES DONNEES -------------#
     # =============================================
     DATA_DIR = os.path.dirname(__file__)
-    FREQ_PRED_PATH = os.path.join(DATA_DIR, 'sorties/predictions/test_predictions_frequence.csv')
-    AMOUNT_PRED_PATH = os.path.join(DATA_DIR, 'sorties/predictions/test_predictions_severite.csv')
+    PROJECT_ROOT = os.path.abspath(os.path.join(DATA_DIR, '..', '..'))
 
+    FREQ_PRED_PATH   = os.path.join(PROJECT_ROOT, 'output_models', 'predictions', 'test_predictions_frequence.csv')
+    AMOUNT_PRED_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'predictions', 'test_predictions_severite.csv')
 
     # --- Input ---
-    MODEL_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_frequence.pickle')
-    MODEL_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_severite.pickle')
+    MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_frequence.pickle')
+    MODEL_SEVERITE_PATH  = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_severite.pickle')
     os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(MODEL_SEVERITE_PATH), exist_ok=True)
 
     # --- Output ---
-    SAVE_MODEL_FREQUENCE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_frequence.json')
-    SAVE_MODEL_SEVERITE_PATH = os.path.join(DATA_DIR, 'sorties/modeles/model_severite.json')
+    SAVE_MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_frequence.json')
+    SAVE_MODEL_SEVERITE_PATH  = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_severite.json')
     os.makedirs(os.path.dirname(SAVE_MODEL_FREQUENCE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(SAVE_MODEL_SEVERITE_PATH), exist_ok=True)
 
     # =======================================================
     #-------- DEFINITION DES CHEMINS DE SORTIE -------------#
     # =======================================================
-    PRIME_PREDICT_PATH = os.path.join(DATA_DIR, 'sorties/predictions/test_prime.csv')
+    PRIME_PREDICT_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'predictions', 'test_prime.csv')
 
 
     # =======================================================
@@ -141,3 +146,32 @@ if __name__ == "__main__":
              MODEL_SEVERITE_PATH,
              SAVE_MODEL_SEVERITE_PATH)
 
+
+    # =======================================================
+    #------ BUILD DATABASE FOR PRIME PREDICTION-------------#
+    # =======================================================
+    TRAIN_CSV_PATH  = os.path.join(PROJECT_ROOT, 'asset', 'train.csv')
+    TEST_CSV_PATH   = os.path.join(PROJECT_ROOT, 'asset', 'test.csv')
+    PRED_FREQ_PATH  = FREQ_PRED_PATH
+    PRED_SEV_PATH   = AMOUNT_PRED_PATH
+    PRED_PRIME_PATH = PRIME_PREDICT_PATH
+    DB_PATH         = os.path.join(PROJECT_ROOT, 'db', 'prime_pricing.sqlite')
+
+    db = Data_Base_Creator(db_path=DB_PATH)
+
+    run_step('Initialisation base SQLite',
+             db.create_database)
+
+    run_step('Création table historique_contrats (train.csv)',
+             db.create_table_historique_contrats,
+             TRAIN_CSV_PATH)
+
+    run_step('Création table test_contrats (test.csv)',
+             db.create_table_test_contrats,
+             TEST_CSV_PATH)
+
+    run_step('Création table predictions (freq + sev + prime)',
+             db.create_table_predictions,
+             PRED_FREQ_PATH,
+             PRED_SEV_PATH,
+             PRED_PRIME_PATH)
