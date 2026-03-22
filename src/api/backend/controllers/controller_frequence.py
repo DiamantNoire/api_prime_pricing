@@ -74,12 +74,12 @@ def _build_frequence_model() -> Model_Prediction_Frequence:
 
     try:
         loaded = model.load_model(MODEL_FREQUENCE_PATH)
-        if not isinstance(loaded, dict) or not loaded.get("pipeline_b64"):
+        if not isinstance(loaded, dict) or not loaded.get("xgb_model_json"):
             raise HTTPException(
                 status_code=500,
                 detail=(
                     "Le JSON de fréquence chargé n'est pas un artefact complet. "
-                    "Relancer l'entraînement pour générer 'pipeline_b64'."
+                    "Relancer l'entraînement pour générer 'xgb_model_json'."
                 ),
             )
     except Exception as exc:

@@ -2,12 +2,12 @@
   "model_name_": "XGBRegressor",
   "best_params_": {
     "model__colsample_bytree": 0.8,
-    "model__learning_rate": 0.03,
+    "model__learning_rate": 0.01,
     "model__max_depth": 4,
-    "model__n_estimators": 200,
+    "model__n_estimators": 100,
     "model__subsample": 0.8
   },
-  "best_score_": -2203841.140661871,
+  "best_score_": -2117335.425985787,
   "selected_features_": [
     "bonus",
     "duree_contrat",
@@ -30,12 +30,12 @@
       "step": "tune",
       "best_params_": {
         "model__colsample_bytree": 0.8,
-        "model__learning_rate": 0.03,
+        "model__learning_rate": 0.01,
         "model__max_depth": 4,
-        "model__n_estimators": 200,
+        "model__n_estimators": 100,
         "model__subsample": 0.8
       },
-      "best_score_": -2203841.140661871
+      "best_score_": -2117335.425985787
     },
     {
       "step": "fit",
@@ -44,18 +44,18 @@
     }
   ],
   "metadata": {
-    "saved_at": "2026-03-22T21:33:34.041184",
+    "saved_at": "2026-03-22T22:58:28.759858",
     "artifact_type": "synthetic_model_artifact",
     "metrics": {
       "train": {
-        "rmse": 1196.6534038025472,
-        "mae": 813.6416539370998,
-        "r2": 0.3253626616185865
+        "rmse": 1384.4428041596211,
+        "mae": 915.9738408479392,
+        "r2": 0.09700852621562484
       },
       "valid": {
-        "rmse": 1506.2519196820076,
-        "mae": 946.1255309473324,
-        "r2": -0.021210326442370198
+        "rmse": 1484.6727483468208,
+        "mae": 939.0191832659997,
+        "r2": 0.007840614856091666
       },
       "tuning": {
         "best_params": null,

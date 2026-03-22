@@ -141,8 +141,8 @@ if __name__ == "__main__":
     model_frequence = Model_Prediction_Frequence()
 
     tuning_results = run_step(
-        'Tune GradientBoostingClassifier',
-        model_frequence.tune_GBClassifier_hyperparameters,
+        'Tune XGBRegressor',
+        model_frequence.tune_XGBRegressor_hyperparameters,
         X_train_copie_freq,
         y_train_copie_freq
     )
@@ -171,34 +171,13 @@ if __name__ == "__main__":
         model_frequence.predict,
         df_test_freq
     )
-
-    y_proba_train_freq = run_step(
-        'Predict proba train frequence',
-        model_frequence.predict_proba,
-        X_train_copie_freq
-    )[:, 1]
-
-    y_proba_valid_freq = run_step(
-        'Predict proba valid frequence',
-        model_frequence.predict_proba,
-        X_valid_copie_freq
-    )[:, 1]
-
-    y_proba_test_freq = run_step(
-        'Predict proba test frequence',
-        model_frequence.predict_proba,
-        df_test_copie_freq
-    )[:, 1]
-
     metrics = run_step(
         'Metrics train frequence',
         model_frequence.metrics,
         y_train_copie_freq,
         y_pred_train_freq,
-        y_proba_train_freq,
         y_valid_copie_freq,
         y_pred_valid_freq, 
-        y_proba_valid_freq
     )
 
     metrics_all = {
@@ -213,14 +192,14 @@ if __name__ == "__main__":
     stats_test_freq = run_step(
         'Stats predictions test frequence',
         model_frequence.test_prediction_stats,
-        y_proba_test_freq,
+        y_pred_test_freq,
         OUTPUT_METRICS_FREQUENCE_PATH
     )
 
 
     # --- Export prédictions test ---
     _generer_csv_pred_freqence(df=df_test,
-                               y_pred=y_proba_test_freq,
+                               y_pred=y_pred_test_freq,
                                path=OUTPUT_TEST_PRED_FREQUENCE_PATH)
     
 
