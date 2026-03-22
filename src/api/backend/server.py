@@ -3,32 +3,35 @@
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import Response
 
 
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 from src.api.backend.controllers.controller_severite import router as severite_router
-from src.api.backend.controllers.controller_frequence import router as frequence_router
-from src.api.backend.controllers.contrat_controller import contrat_router
-from src.api.backend.controllers.contrat_ml_controller import ml_router
+# from src.api.backend.controllers.controller_frequence import router as frequence_router
 
 
 # =============================================
 #------ AJOUT DES ENDPOINTS ----------#
 # =============================================
-app = FastAPI()
+app = FastAPI(
+    title="API Prime Pricing",
+    version="1.0.0"
+)
 
 app.include_router(severite_router)
-app.include_router(frequence_router)
-
-app.include_router(contrat_router)
-app.include_router(ml_router)
+# app.include_router(frequence_router)
 
 @app.get("/")
 def read_root():
     return {"message": "API Prime Pricing is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.get("/favicon.ico")
 def favicon():

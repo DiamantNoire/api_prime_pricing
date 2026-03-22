@@ -1,0 +1,66 @@
+{
+  "model_name_": "XGBRegressor",
+  "best_params_": {
+    "model__colsample_bytree": 0.8,
+    "model__learning_rate": 0.03,
+    "model__max_depth": 4,
+    "model__n_estimators": 200,
+    "model__subsample": 0.8
+  },
+  "best_score_": -2203841.140661871,
+  "selected_features_": [
+    "bonus",
+    "duree_contrat",
+    "anciennete_info",
+    "age_conducteur1",
+    "age_conducteur2",
+    "anciennete_permis1",
+    "anciennete_permis2",
+    "anciennete_vehicule",
+    "cylindre_vehicule",
+    "din_vehicule",
+    "debut_vente_vehicule",
+    "fin_vente_vehicule",
+    "vitesse_vehicule",
+    "prix_vehicule",
+    "poids_vehicule"
+  ],
+  "history_": [
+    {
+      "step": "tune",
+      "best_params_": {
+        "model__colsample_bytree": 0.8,
+        "model__learning_rate": 0.03,
+        "model__max_depth": 4,
+        "model__n_estimators": 200,
+        "model__subsample": 0.8
+      },
+      "best_score_": -2203841.140661871
+    },
+    {
+      "step": "fit",
+      "n_rows": 2333,
+      "n_cols": 15
+    }
+  ],
+  "metadata": {
+    "saved_at": "2026-03-22T21:33:34.041184",
+    "artifact_type": "synthetic_model_artifact",
+    "metrics": {
+      "train": {
+        "rmse": 1196.6534038025472,
+        "mae": 813.6416539370998,
+        "r2": 0.3253626616185865
+      },
+      "valid": {
+        "rmse": 1506.2519196820076,
+        "mae": 946.1255309473324,
+        "r2": -0.021210326442370198
+      },
+      "tuning": {
+        "best_params": null,
+        "best_score": null
+      }
+    }
+  }
+}

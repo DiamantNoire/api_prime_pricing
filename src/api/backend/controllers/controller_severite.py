@@ -49,46 +49,79 @@ class SeveriteInput(BaseModel):
 class SeveriteOutput(BaseModel):
     prediction: Optional[float] = None
 
+
+# =============================================
+#-------- CHARGEMENT DES DONNEES -------------#
+# =============================================
+DATA_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+# --- Input ---
+MODEL_SEVERITE_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_severite.json')
+os.makedirs(os.path.dirname(MODEL_SEVERITE_PATH), exist_ok=True)
+
+
 # =============================================
 #------ ROUTAGE ----------#
 # =============================================
-
 router = APIRouter()
 
-
 def _build_severite_model() -> Model_Prediction_Severite:
-    """Instantiate predictor from JSON metadata and trained pickle artifact."""
+    """Instantiate predictor from complete pre-trained JSON artifact."""
     model = Model_Prediction_Severite()
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-    json_path = os.path.join(project_root, "output_models", "modeles", "model_severite.json")
-    pickle_path = os.path.join(project_root, "output_models", "modeles", "model_severite.pickle")
 
-    if not os.path.exists(json_path):
-        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {json_path}")
+    if not os.path.exists(MODEL_SEVERITE_PATH):
+        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_SEVERITE_PATH}")
 
     try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            meta = json.load(f)
-        model.selected_features_ = meta.get("selected_features_", []) or []
-        model.fill_values_ = meta.get("fill_values_", {}) or {}
+        # Charger l'artefact complet (métadonnées + modèle entraîné) depuis JSON.
+        loaded = model.load_model(MODEL_SEVERITE_PATH)
+        if not isinstance(loaded, dict) or not loaded.get("xgb_model_json"):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Le JSON de sévérité chargé n'est pas un artefact complet. "
+                    "Relancer l'entraînement pour générer 'xgb_model_json'."
+                ),
+            )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur lecture model_severite.json: {exc}")
-
-    loaded = model.load_model(pickle_path)
-    if loaded is None:
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Impossible de charger model_severite.pickle. "
-                "Le JSON est bien lu, mais le pipeline entraîné n'est pas disponible."
-            ),
-        )
+        raise HTTPException(status_code=500, detail=f"Erreur chargement artefact severite JSON: {exc}")
 
     return model
 
+
+# Chargement unique du modèle entraîné au démarrage du module.
+SEVERITE_MODEL: Optional[Model_Prediction_Severite] = None
+SEVERITE_MODEL_LOAD_ERROR: Optional[str] = None
+
+try:
+    SEVERITE_MODEL = _build_severite_model()
+except HTTPException as exc:
+    SEVERITE_MODEL_LOAD_ERROR = str(exc.detail)
+except Exception as exc:
+    SEVERITE_MODEL_LOAD_ERROR = str(exc)
+
+@router.get("/predictio_severite/health")
+def health_predictio_severite():
+    return {
+        "status": "ok" if SEVERITE_MODEL is not None else "error",
+        "model_loaded": SEVERITE_MODEL is not None,
+        "model_path": MODEL_SEVERITE_PATH,
+        "model_file_exists": os.path.exists(MODEL_SEVERITE_PATH),
+        "detail": SEVERITE_MODEL_LOAD_ERROR,
+    }
+
 @router.post("/predict_severite", response_model=SeveriteOutput)
 def prediction(input_data: SeveriteInput):
+    if SEVERITE_MODEL is None:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Le modèle de sévérité n'est pas disponible. "
+                f"Détail: {SEVERITE_MODEL_LOAD_ERROR or 'erreur inconnue'}"
+            ),
+        )
+
     df = pd.DataFrame([input_data.model_dump(exclude_none=True)])
-    model = _build_severite_model()
-    y_pred = model.predict(df)
+    y_pred = SEVERITE_MODEL.predict(df)
     return SeveriteOutput(prediction=float(y_pred[0]))

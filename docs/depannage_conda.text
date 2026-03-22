@@ -249,3 +249,99 @@ source .venv/bin/activate
 uv venv
 
 source .venv/bin/activate
+
+
+
+
+TEST de l'api et des endpoints 
+
+cd /home/cytech/dev/python/api_prime_pricing
+source .venv/bin/activate
+python -m uvicorn src.api.backend.server:app --host 127.0.0.1 --port 8000 --reload
+
+Tester endpoint GET health sévérité
+curl -s http://127.0.0.1:8000/predictio_severite/health
+
+Tester endpoint POST prédiction sévérité (single JSON)
+curl -s -X POST http://127.0.0.1:8000/predict_severite \
+  -H "Content-Type: application/json" \
+  -d '{"bonus": 0.76, "duree_contrat": 10, "age_conducteur1": 43, "anciennete_permis1": 22, "anciennete_vehicule": 2.0, "din_vehicule": 90, "vitesse_vehicule": 180, "prix_vehicule": 16280}'
+
+
+test health global serveur
+curl -s http://127.0.0.1:8000/health
+
+
+exemple d'un single json : 
+
+{
+  "bonus": 0.33,
+  "type_contrat": "Mini",
+  "duree_contrat": 6,
+  "anciennete_info": 3,
+  "freq_paiement": "Quarterly",
+  "paiement": "Yes",
+  "utilisation": "Professional",
+  "code_postal": "75119",
+  "conducteur2": "Yes",
+  "age_conducteur1": 29,
+  "age_conducteur2": 27,
+  "sex_conducteur1": "M",
+  "sex_conducteur2": "F",
+  "anciennete_permis1": 11,
+  "anciennete_permis2": 8,
+  "anciennete_vehicule": 1.7,
+  "cylindre_vehicule": 1598,
+  "din_vehicule": 132,
+  "essence_vehicule": "Hybrid",
+  "marque_vehicule": "TOYOTA",
+  "modele_vehicule": "COROLLA",
+  "debut_vente_vehicule": 2020,
+  "fin_vente_vehicule": 2024,
+  "vitesse_vehicule": 205,
+  "type_vehicule": "SUV",
+  "prix_vehicule": 28990,
+  "poids_vehicule": 1425
+}
+
+
+Dans un navigateur
+lancer dans un terminal pour: demarrer l'api
+python -m uvicorn src.api.backend.server:app --host 127.0.0.1 --port 8000 --reload
+
+ouverir le navigateur:
+http://127.0.0.1:8000/docs
+
+Dans la page :
+ouvre POST /predict_severite
+clique Try it out
+colle ce JSON dans le body :
+{
+  "bonus": 0.33,
+  "type_contrat": "Mini",
+  "duree_contrat": 6,
+  "anciennete_info": 3,
+  "freq_paiement": "Quarterly",
+  "paiement": "Yes",
+  "utilisation": "Professional",
+  "code_postal": "75119",
+  "conducteur2": "Yes",
+  "age_conducteur1": 29,
+  "age_conducteur2": 27,
+  "sex_conducteur1": "M",
+  "sex_conducteur2": "F",
+  "anciennete_permis1": 11,
+  "anciennete_permis2": 8,
+  "anciennete_vehicule": 1.7,
+  "cylindre_vehicule": 1598,
+  "din_vehicule": 132,
+  "essence_vehicule": "Hybrid",
+  "marque_vehicule": "TOYOTA",
+  "modele_vehicule": "COROLLA",
+  "debut_vente_vehicule": 2020,
+  "fin_vente_vehicule": 2024,
+  "vitesse_vehicule": 205,
+  "type_vehicule": "SUV",
+  "prix_vehicule": 28990,
+  "poids_vehicule": 1425
+}

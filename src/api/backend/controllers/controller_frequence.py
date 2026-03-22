@@ -2,9 +2,10 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
+import os
 import pandas as pd
 from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Frequence
@@ -46,14 +47,61 @@ class FrequenceInput(BaseModel):
 class FrequenceOutput(BaseModel):
     prediction: Optional[float] = None
 
+
+# =============================================
+#-------- CHARGEMENT DES DONNEES -------------#
+# =============================================
+DATA_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+# --- Input ---
+MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_frequence.json')
+os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
+
+
 # =============================================
 #------ ROUTAGE ----------#
 # =============================================
-
 router = APIRouter()
+
+def _build_frequence_model() -> Model_Prediction_Frequence:
+    """Instantiate predictor from JSON metadata."""
+    model = Model_Prediction_Frequence()
+
+    if not os.path.exists(MODEL_FREQUENCE_PATH):
+        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}")
+
+    try:
+        # Charger les métadonnées depuis JSON
+        model.load_model(MODEL_FREQUENCE_PATH)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Erreur chargement {MODEL_FREQUENCE_PATH}: {exc}")
+
+    return model
+
+
+# Chargement unique du modèle entraîné au démarrage du module.
+FREQUENCE_MODEL: Optional[Model_Prediction_Frequence] = None
+FREQUENCE_MODEL_LOAD_ERROR: Optional[str] = None
+
+try:
+    FREQUENCE_MODEL = _build_frequence_model()
+except HTTPException as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc.detail)
+except Exception as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc)
 
 @router.post("/predict_frequence", response_model=FrequenceOutput)
 def prediction(input_data: FrequenceInput):
-    df = pd.DataFrame([input_data.model_dump()])
-    y_pred = Model_Prediction_Frequence().predict(df)
+    if FREQUENCE_MODEL is None:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Le modèle de fréquence n'est pas disponible. "
+                f"Détail: {FREQUENCE_MODEL_LOAD_ERROR or 'erreur inconnue'}"
+            ),
+        )
+
+    df = pd.DataFrame([input_data.model_dump(exclude_none=True)])
+    y_pred = FREQUENCE_MODEL.predict(df)
     return FrequenceOutput(prediction=float(y_pred[0]))

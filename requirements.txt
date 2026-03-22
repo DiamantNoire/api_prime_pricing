@@ -27,6 +27,7 @@ pandas==2.2.3
 # ML — dev_build_models (entraînement fréquence + sévérité)
 # -----------------------------------------------------------------------------
 scikit-learn==1.5.2
+xgboost>=2.0
 tqdm>=4.66
 
 
