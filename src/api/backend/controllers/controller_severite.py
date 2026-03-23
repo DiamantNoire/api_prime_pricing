@@ -2,6 +2,7 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
+import logging
 from typing import Optional
 
 import pandas as pd
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 from src.api.backend.model_runtime import MODEL_SEVERITE_PATH
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Severite
+
+LOGGER = logging.getLogger(__name__)
 
 # =============================================
 #------ CLASSES ----------#
@@ -57,6 +60,7 @@ router = APIRouter()
 
 @router.get("/predictio_severite/health")
 def health_predictio_severite(request: Request):
+    LOGGER.info("GET /predictio_severite/health")
     model = getattr(request.app.state, "severite_model", None)
     load_error = getattr(request.app.state, "severite_model_load_error", None)
 
@@ -70,6 +74,7 @@ def health_predictio_severite(request: Request):
 
 @router.post("/predict_severite", response_model=SeveriteOutput)
 def prediction(input_data: SeveriteInput, request: Request):
+    LOGGER.info("POST /predict_severite")
     model: Optional[Model_Prediction_Severite] = getattr(request.app.state, "severite_model", None)
     load_error = getattr(request.app.state, "severite_model_load_error", None)
 

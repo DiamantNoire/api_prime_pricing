@@ -1,6 +1,9 @@
 import joblib
 import os
+import logging
 from pathlib import Path
+
+LOGGER = logging.getLogger(__name__)
 
 class MLService:
 
@@ -13,12 +16,12 @@ class MLService:
         if os.path.exists(self.model_path):
             try:
                 self.model = joblib.load(self.model_path)
-                print("Modèle chargé avec succès.")
+                LOGGER.info("Modele charge avec succes depuis %s", self.model_path)
             except Exception as e:
-                print(f"Erreur lors du chargement du modèle : {e}")
+                LOGGER.exception("Erreur lors du chargement du modele")
                 self.model = None
         else:
-            print(f" Utilisation du modèle naif")
+            LOGGER.warning("Modele introuvable (%s), utilisation du modele naif", self.model_path)
 
     def formule_naive(self, data: dict):
         # formule naive : prime = age * bonus * (1 + sinistres)

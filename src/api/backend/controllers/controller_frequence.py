@@ -2,6 +2,7 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
+import logging
 from typing import Optional
 
 import pandas as pd
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 from src.api.backend.model_runtime import MODEL_FREQUENCE_PATH
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Frequence
+
+LOGGER = logging.getLogger(__name__)
 
 # =============================================
 #------ CLASSES ----------#
@@ -58,6 +61,7 @@ router = APIRouter()
 
 @router.get("/predictio_frequence/health")
 def health_predictio_frequence(request: Request):
+    LOGGER.info("GET /predictio_frequence/health")
     model = getattr(request.app.state, "frequence_model", None)
     load_error = getattr(request.app.state, "frequence_model_load_error", None)
 
@@ -71,6 +75,7 @@ def health_predictio_frequence(request: Request):
 
 @router.post("/predict_frequence", response_model=FrequenceOutput)
 def prediction(input_data: FrequenceInput, request: Request):
+    LOGGER.info("POST /predict_frequence")
     model: Optional[Model_Prediction_Frequence] = getattr(request.app.state, "frequence_model", None)
     load_error = getattr(request.app.state, "frequence_model_load_error", None)
 

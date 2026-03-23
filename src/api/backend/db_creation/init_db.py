@@ -12,8 +12,11 @@
 # ===============================================================
 import os
 import sys
+import logging
 from pathlib import Path
 from src.models.fonctions_utiles import Data_Base_Creator
+
+LOGGER = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parents[4]
 ASSET_DIR = BASE_DIR / "asset"
 OUTPUT_PREDICTIONS_DIR = BASE_DIR / "output_models" / "predictions"
@@ -54,6 +57,8 @@ def run_api():
     )
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+
     actions = {
         "init_db": init_db,
         "fill_historique": fill_historique,
@@ -61,6 +66,7 @@ if __name__ == "__main__":
         "run_api": run_api,
     }
     if len(sys.argv) < 2 or sys.argv[1] not in actions:
-        print("Usage: python main.py [init_db|fill_historique|fill_predictions|run_api]")
+        LOGGER.warning("Usage: python main.py [init_db|fill_historique|fill_predictions|run_api]")
     else:
+        LOGGER.info("Execution action init_db: %s", sys.argv[1])
         actions[sys.argv[1]]()

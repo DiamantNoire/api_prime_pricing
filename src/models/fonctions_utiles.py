@@ -21,6 +21,7 @@ import json
 import base64
 import sqlite3
 import requests
+import logging
 
 
 import pickle
@@ -73,6 +74,8 @@ except ImportError:
             pass
     def tqdm(*args, **kwargs):
         return _DummyTqdm()
+
+LOGGER = logging.getLogger(__name__)
     
 PROGRESS_STYLE = {
     'ascii': True,
@@ -291,7 +294,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
             with open(filepath, 'wb') as f:
                 pickle.dump(fe, f)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde du feature engineer fréquence: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde du feature engineer frequence")
 
     def load_feature_engineer(self, filepath: str):
         """Load a previously serialized frequency feature-engineering artifact."""
@@ -299,7 +302,7 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
             with open(filepath, 'rb') as f:
                 return pickle.load(f)
         except Exception as e:
-            print(f"Erreur lors du chargement du feature engineer fréquence: {e}")
+            LOGGER.exception("Erreur lors du chargement du feature engineer frequence")
             return None
 
 
@@ -449,7 +452,7 @@ class Model_Prediction_Frequence(BaseEstimator):
             with open(filepath, 'wb') as f:
                 pickle.dump(artifact, f)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde du modèle fréquence: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde du modele frequence")
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
@@ -493,7 +496,7 @@ class Model_Prediction_Frequence(BaseEstimator):
                 return loaded
             return None
         except Exception as e:
-            print(f"Erreur lors du chargement du modèle fréquence: {e}")
+            LOGGER.exception("Erreur lors du chargement du modele frequence")
             return None
     def save_complete_artifact(
         self,
@@ -529,7 +532,7 @@ class Model_Prediction_Frequence(BaseEstimator):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde de l'artefact complet fréquence: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact complet frequence")
 
     def save_synthetic_artifact(
         self,
@@ -554,7 +557,7 @@ class Model_Prediction_Frequence(BaseEstimator):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde de l'artefact synthétique fréquence: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact synthetique frequence")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
@@ -565,7 +568,7 @@ class Model_Prediction_Frequence(BaseEstimator):
                 return loaded.get("metadata")
             return None
         except Exception as e:
-            print(f"Erreur lors de la lecture des métadonnées fréquence: {e}")
+            LOGGER.exception("Erreur lors de la lecture des metadonnees frequence")
             return None
 
 
@@ -795,7 +798,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
             with open(filepath, 'wb') as f:
                 pickle.dump(fe, f)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde du feature engineer: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde du feature engineer")
 
     def load_feature_engineer(self, filepath: str):
         """Load a previously serialized severity feature-engineering artifact."""
@@ -804,7 +807,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
                 fe = pickle.load(f)
             return fe
         except Exception as e:
-            print(f"Erreur lors du chargement du feature engineer: {e}")
+            LOGGER.exception("Erreur lors du chargement du feature engineer")
             return None
 
 
@@ -979,7 +982,7 @@ class Model_Prediction_Severite(BaseEstimator):
             with open(filepath, 'wb') as f:
                 pickle.dump(artifact, f)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde du modèle: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde du modele")
 
 
     def save_pure_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
@@ -989,7 +992,7 @@ class Model_Prediction_Severite(BaseEstimator):
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(model_, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde du modèle pur: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde du modele pur")
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
@@ -1018,7 +1021,7 @@ class Model_Prediction_Severite(BaseEstimator):
 
             return loaded
         except Exception as e:
-            print(f"Erreur lors du chargement du modèle sévérité: {e}")
+            LOGGER.exception("Erreur lors du chargement du modele severite")
             return None
 
     def save_complete_artifact(
@@ -1056,7 +1059,7 @@ class Model_Prediction_Severite(BaseEstimator):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde de l'artefact complet sévérité: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact complet severite")
 
     def save_synthetic_artifact(
         self,
@@ -1081,7 +1084,7 @@ class Model_Prediction_Severite(BaseEstimator):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde de l'artefact synthétique sévérité: {e}")
+            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact synthetique severite")
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
@@ -1093,7 +1096,7 @@ class Model_Prediction_Severite(BaseEstimator):
                 return loaded.get('metadata', None)
             return None
         except Exception as e:
-            print(f"Erreur lors de la lecture des métadonnées de l'artefact sévérité: {e}")
+            LOGGER.exception("Erreur lors de la lecture des metadonnees de l'artefact severite")
             return None
 
 
@@ -1117,9 +1120,9 @@ class Data_Base_Creator:
             conn = sqlite3.connect(self.db_path)
             df.to_sql('historique_contrats', conn, if_exists='replace', index=False)
             conn.close()
-            print(f"Table historique_contrats créée à partir de {csv_path}")
+            LOGGER.info("Table historique_contrats creee a partir de %s", csv_path)
         except Exception as e:
-            print(f"Erreur lors de la création de la table historique_contrats : {e}")
+            LOGGER.exception("Erreur lors de la creation de la table historique_contrats")
 
     def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
@@ -1138,6 +1141,6 @@ class Data_Base_Creator:
             conn = sqlite3.connect(self.db_path)
             df.to_sql('predictions', conn, if_exists='replace', index=False)
             conn.close()
-            print("Table predictions créée à partir des fichiers de prédiction.")
+            LOGGER.info("Table predictions creee a partir des fichiers de prediction")
         except Exception as e:
-            print(f"Erreur lors de la création de la table predictions : {e}")
+            LOGGER.exception("Erreur lors de la creation de la table predictions")

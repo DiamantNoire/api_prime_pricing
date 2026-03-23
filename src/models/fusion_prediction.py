@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import pickle
+import logging
 from datetime import datetime
 from typing import Any
 import pandas as pd
@@ -19,13 +20,15 @@ if CURRENT_DIR not in sys.path:
 from fonctions_utiles import (run_step,
                              run_internal_step,
                              Data_Base_Creator)
+
+LOGGER = logging.getLogger(__name__)
                             
 
 def run_step(step_name: str, func, *args, **kwargs):
     """Exécute une étape du pipeline avec logs simples."""
-    print(f"[STEP] {step_name} ...")
+    LOGGER.info("[STEP] %s ...", step_name)
     result = func(*args, **kwargs)
-    print(f"[OK] {step_name}")
+    LOGGER.info("[OK] %s", step_name)
     return result
 
 
@@ -88,6 +91,8 @@ def _dump_pickle_to_json(pickle_path: str, json_path: str) -> None:
         json.dump(payload, file_handler, indent=2, ensure_ascii=False)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+
     # =============================================
     #-------- CHARGEMENT DES DONNEES -------------#
     # =============================================

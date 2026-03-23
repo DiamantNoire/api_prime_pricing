@@ -6,10 +6,13 @@
 import os
 import sys
 import json
+import logging
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import FunctionTransformer
+
+LOGGER = logging.getLogger(__name__)
 
 
 # =============================================
@@ -28,6 +31,8 @@ from fonctions_utiles import (run_step,
                              Model_Prediction_Severite)
                             
 if __name__ == "__main__":
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+    LOGGER.info("Demarrage entrainement modele severite")
 
     # =============================================
     #-------- CHARGEMENT DES DONNEES -------------#
@@ -250,4 +255,6 @@ if __name__ == "__main__":
         OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH,
         {"metrics": metrics_all}
     )
+
+    LOGGER.info("Fin entrainement modele severite")
 
