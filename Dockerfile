@@ -19,5 +19,5 @@ COPY . .
 # Exposer le port de l'API
 EXPOSE 8000
 
-# Commande de lancement par défaut (FastAPI via Uvicorn)
-CMD ["uvicorn", "src.api.backend.server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Commande de lancement — PORT injecté par Render (défaut 8000 en local)
+CMD uvicorn src.api.backend.server:app --host 0.0.0.0 --port ${PORT:-8000}
