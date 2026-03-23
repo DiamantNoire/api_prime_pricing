@@ -307,6 +307,7 @@ exemple d'un single json :
 
 Dans un navigateur
 lancer dans un terminal pour: demarrer l'api
+fuser -k 8000/tcp
 python -m uvicorn src.api.backend.server:app --host 127.0.0.1 --port 8000 --reload
 
 ouverir le navigateur:
