@@ -8,3 +8,16 @@
 .venv/
 __pycache__/
 *.pyc
+
+# accidental scratch file
+=2.0
+
+# generated training artifacts (do not version)
+src/models/output/
+output_models/artifacts/
+output_models/feature_engineering/
+output_models/metrics/
+output_models/modeles/*.pickle
+output_models/modeles/*_v1.json
+output_models/modeles/*_v1.pickle
+output_models/modeles/*_v1.csv
