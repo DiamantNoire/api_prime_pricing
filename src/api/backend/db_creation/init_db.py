@@ -10,8 +10,14 @@
 # ===============================================================
 # 1- IMPORTATIONS DES LIBRAIRIES | MODULES
 # ===============================================================
-import sys 
+import os
+import sys
+from pathlib import Path
 from src.models.fonctions_utiles import Data_Base_Creator
+BASE_DIR = Path(__file__).resolve().parents[4]
+ASSET_DIR = BASE_DIR / "asset"
+OUTPUT_PREDICTIONS_DIR = BASE_DIR / "output_models" / "predictions"
+
 
 # ===============================================================
 # 2- CHEMIN 
@@ -27,19 +33,25 @@ def init_db():
 
 def fill_historique():
     db = Data_Base_Creator()
-    db.create_table_historique_contrats("asset/train.csv")
+    db.create_table_historique_contrats(str(ASSET_DIR / "train.csv"))
 
 def fill_predictions():
     db = Data_Base_Creator()
     db.create_table_predictions(
-        "output_models/predictions/test_predictions_frequence.csv",
-        "output_models/predictions/test_predictions_severite.csv",
-        "output_models/predictions/test_prime.csv"
+        str(OUTPUT_PREDICTIONS_DIR / "test_predictions_frequence.csv"),
+        str(OUTPUT_PREDICTIONS_DIR / "test_predictions_severite.csv"),
+        str(OUTPUT_PREDICTIONS_DIR / "test_prime.csv"),
     )
 
 def run_api():
     import uvicorn
-    uvicorn.run("src.api.backend.server:app", host="0.0.0.0", port=8000, reload=True)
+
+    uvicorn.run(
+        "src.api.backend.server:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        reload=os.getenv("APP_RELOAD", "false").lower() == "true",
+    )
 
 if __name__ == "__main__":
     actions = {

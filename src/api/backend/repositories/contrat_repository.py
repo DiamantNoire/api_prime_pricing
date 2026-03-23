@@ -1,13 +1,15 @@
 import csv
+from pathlib import Path
 
 
 class ContratRepository:
 
     def __init__(self):
-        self.FILE_PATH = "asset/train.csv"
+        base_dir = Path(__file__).resolve().parents[4]
+        self.file_path = base_dir / "asset" / "train.csv"
 
     def find_all(self):
-        with open(self.FILE_PATH, mode="r", encoding="utf-8") as file:
+        with self.file_path.open(mode="r", encoding="utf-8") as file:
             reader = csv.DictReader(file)
             return list(reader)
 

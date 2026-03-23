@@ -1,11 +1,13 @@
 import joblib
 import os
+from pathlib import Path
 
 class MLService:
 
     def __init__(self):
         self.model = None
-        self.model_path = "model.pkl"
+        base_dir = Path(__file__).resolve().parents[4]
+        self.model_path = base_dir / "model.pkl"
 
         # verifie si le modèle existe avant de le charger
         if os.path.exists(self.model_path):
