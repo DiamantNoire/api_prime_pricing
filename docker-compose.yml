@@ -8,7 +8,7 @@
     api:
       build: .
       container_name: api_prime_pricing
-      command: uvicorn src/api/backend/server:app --host 0.0.0.0 --port 8000
+      command: uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
       ports:
         - "8000:8000"
       volumes:
@@ -20,7 +20,7 @@
 
     init_db:
       build: .
-      command: python src/api/init_db.py
+      command: python src/api/backend/db_creation/init_db.py init_db
       volumes:
         - .:/app
         - db_data:/app/db
@@ -32,8 +32,7 @@
     test:
       build: .
       command: >
-        /bin/bash -c "python -m unittest discover -s src/models/tests && \
-        ruff check src/ --output-format=github"
+        /bin/bash -c "pytest -q && ruff check src/ --output-format=github"
       volumes:
         - .:/app
       environment:

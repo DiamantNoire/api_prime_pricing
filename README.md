@@ -4,45 +4,92 @@ Projet de prediction de prime auto avec pipeline ML et API FastAPI.
 
 ## Contenu du repo
 
-- `src/models/`: entrainement des modeles (frequence et severite), feature engineering, sauvegarde des artefacts.
-- `src/api/backend/`: API FastAPI exposee pour la prediction.
-- `src/api/frontend/`: interface Streamlit.
-- `asset/`: jeux de donnees `train.csv` et `test.csv`.
-- `output_models/`: modeles et sorties de prediction.
+- `src/models/`: entrainement des modeles, feature engineering et fusion des predictions.
+- `src/api/backend/`: API FastAPI publiee pour la prediction.
+- `src/api/frontend/`: interface Streamlit locale.
+- `output_models/`: artefacts JSON publies avec l'API.
 - `db/`: base SQLite locale.
 
 ## Endpoints principaux
 
+- `GET /health`: healthcheck global.
 - `GET /predictio_frequence/health`: verifie que le modele frequence est charge.
 - `POST /predict_frequence`: calcule la prediction frequence sur un JSON unitaire.
 - `GET /predictio_severite/health`: verifie que le modele severite est charge.
 - `POST /predict_severite`: calcule la prediction severite sur un JSON unitaire.
+- `POST /predict_price`: calcule une prime simple avec `frequence * severite`.
 
-## Demarrage rapide
+## Demarrage local
 
 ```bash
-cd /home/cytech/dev/python/api_prime_pricing
+python -m venv .venv
 source .venv/bin/activate
-fuser -k 8000/tcp
-python -m uvicorn src.api.backend.server:app --host 127.0.0.1 --port 8000 --reload
+pip install -r requirements.txt
+uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
 ```
 
-## Tests API (frequence + severite)
+## Deploiement Render
 
-Health checks:
+Le backend est prepare pour Render:
+
+- chemins de modeles resolves avec `Path`, sans chemin local `/home/...`
+- chargement des modeles au startup FastAPI
+- commande de demarrage compatible `PORT`
+- configuration prete dans `render.yaml`
+
+### Build command
 
 ```bash
+pip install -r requirements.txt
+```
+
+### Start command
+
+```bash
+uvicorn src.api.backend.server:app --host 0.0.0.0 --port $PORT
+```
+
+### Creation du service
+
+1. Pousser la branche de deploiement sur GitHub.
+2. Creer un `Web Service` Python sur Render.
+3. Renseigner le build command et le start command ci-dessus.
+4. Verifier que `output_models/modeles/model_frequence.json` et `output_models/modeles/model_severite.json` sont bien presents dans le repo distant.
+
+## Tests API
+
+### Local
+
+```bash
+curl -s http://127.0.0.1:8000/health
 curl -s http://127.0.0.1:8000/predictio_frequence/health
 curl -s http://127.0.0.1:8000/predictio_severite/health
 ```
 
-POST sur les deux endpoints avec un single JSON complet:
+### Render
+
+```bash
+curl -s https://your-api.onrender.com/health
+curl -s https://your-api.onrender.com/predictio_frequence/health
+curl -s https://your-api.onrender.com/predictio_severite/health
+```
+
+### POST sur les deux endpoints avec un JSON complet
 
 ```bash
 JSON='{"bonus":0.33,"type_contrat":"Mini","duree_contrat":6,"anciennete_info":3,"freq_paiement":"Quarterly","paiement":"Yes","utilisation":"Professional","code_postal":"75119","conducteur2":"Yes","age_conducteur1":29,"age_conducteur2":27,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":11,"anciennete_permis2":8,"anciennete_vehicule":1.7,"cylindre_vehicule":1598,"din_vehicule":132,"essence_vehicule":"Hybrid","marque_vehicule":"TOYOTA","modele_vehicule":"COROLLA","debut_vente_vehicule":2020,"fin_vente_vehicule":2024,"vitesse_vehicule":205,"type_vehicule":"SUV","prix_vehicule":28990,"poids_vehicule":1425}'
 
 curl -s -X POST http://127.0.0.1:8000/predict_frequence -H "Content-Type: application/json" -d "$JSON"
 curl -s -X POST http://127.0.0.1:8000/predict_severite -H "Content-Type: application/json" -d "$JSON"
+curl -s -X POST http://127.0.0.1:8000/predict_price -H "Content-Type: application/json" -d "$JSON"
+```
+
+### POST Render
+
+```bash
+curl -s -X POST https://your-api.onrender.com/predict_frequence -H "Content-Type: application/json" -d "$JSON"
+curl -s -X POST https://your-api.onrender.com/predict_severite -H "Content-Type: application/json" -d "$JSON"
+curl -s -X POST https://your-api.onrender.com/predict_price -H "Content-Type: application/json" -d "$JSON"
 ```
 
 ## 5 payloads aleatoires (hors base) + commandes POST (severite)
