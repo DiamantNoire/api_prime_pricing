@@ -43,6 +43,7 @@ pydantic==2.10.4
 # Frontend — prod_api_rest/app/src/frontend (Streamlit)
 # -----------------------------------------------------------------------------
 streamlit>=1.30
+streamlit-antd-components>=0.3.2
 sqlalchemy>=2.0
 plotly>=5.18
 openpyxl>=3.1
