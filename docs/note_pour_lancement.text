@@ -345,3 +345,8 @@ colle ce JSON dans le body :
   "prix_vehicule": 28990,
   "poids_vehicule": 1425
 }
+
+
+
+streamlit run src/app/app.py
+streamlit run src/app/app.py

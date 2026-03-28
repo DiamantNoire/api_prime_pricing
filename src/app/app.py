@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -14,6 +15,9 @@ if str(SRC_DIR) not in sys.path:
 from app import config
 from app.layouts import footer, main_layout
 from app.pages import contrat, dashboard, inference
+
+logging.basicConfig(level=getattr(logging, config.LOG_LEVEL, logging.INFO), format=config.LOG_FORMAT)
+logger = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -39,7 +43,12 @@ if "current_page" not in st.session_state:
 # LAYOUT & NAVIGATION
 # ==============================================================================
 
-selected_page = main_layout(st.session_state.current_page)
+try:
+    selected_page = main_layout(st.session_state.current_page)
+except Exception:
+    logger.exception("Erreur lors de l'initialisation du layout principal")
+    st.error("Impossible de charger le layout de l'application.")
+    selected_page = st.session_state.current_page
 
 # Map menu selection to page routing
 page_mapping = {
@@ -56,17 +65,24 @@ if selected_page and selected_page in page_mapping:
 # PAGE RENDERING
 # ==============================================================================
 
-if st.session_state.current_page == "dashboard":
-    dashboard.render()
-elif st.session_state.current_page == "contrat":
-    contrat.render()
-elif st.session_state.current_page == "inference":
-    inference.render()
-else:
-    dashboard.render()
+try:
+    if st.session_state.current_page == "dashboard":
+        dashboard.render()
+    elif st.session_state.current_page == "contrat":
+        contrat.render()
+    elif st.session_state.current_page == "inference":
+        inference.render()
+    else:
+        dashboard.render()
+except Exception:
+    logger.exception("Erreur lors du rendu de la page courante: %s", st.session_state.current_page)
+    st.error("Une erreur est survenue lors du rendu de la page.")
 
 # ==============================================================================
 # FOOTER
 # ==============================================================================
 
-footer()
+try:
+    footer()
+except Exception:
+    logger.exception("Erreur lors du rendu du footer")
