@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from . import config
+from .layouts import main_layout, footer
+from . import pages
+
 try:
     import streamlit_antd_components as sac
 except ImportError as exc:
@@ -11,35 +15,57 @@ except ImportError as exc:
     ) from exc
 
 
+# ==============================================================================
+# PAGE CONFIG
+# ==============================================================================
+
 st.set_page_config(
-    page_title="Prime Pricing - User Application",
-    page_icon="📊",
-    layout="wide",
+    page_title=config.APP_NAME,
+    page_icon=config.APP_ICON,
+    layout=config.APP_LAYOUT,
+    initial_sidebar_state=config.APP_INITIAL_SIDEBAR_STATE,
 )
 
-st.title("User Application")
-st.caption("Base UI Streamlit + Ant Design pour demarrer les compose.")
+# ==============================================================================
+# SESSION STATE INIT
+# ==============================================================================
 
-menu = sac.menu(
-    [
-        sac.MenuItem("Tableau de bord", icon="house"),
-        sac.MenuItem("Compose Contrat", icon="file-earmark-text"),
-        sac.MenuItem("Compose Inference", icon="graph-up"),
-    ],
-    open_all=True,
-)
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "dashboard"
 
-sac.divider(label="Espace de travail", icon="layout-three-columns")
 
-if menu == "Tableau de bord":
-    sac.result(
-        label="Squelette pret",
-        description="Le module src/app est initialise sur la branche dev_user_application.",
-        status="success",
-    )
-elif menu == "Compose Contrat":
-    st.subheader("Compose Contrat")
-    st.info("Section reservee pour les composants de creation/edition de contrat.")
+# ==============================================================================
+# LAYOUT & NAVIGATION
+# ==============================================================================
+
+selected_page = main_layout(st.session_state.current_page)
+
+# Map menu selection to page routing
+page_mapping = {
+    "Tableau de bord": "dashboard",
+    "Compose Contrat": "contrat",
+    "Compose Inference": "inference",
+}
+
+if selected_page and selected_page in page_mapping:
+    st.session_state.current_page = page_mapping[selected_page]
+
+
+# ==============================================================================
+# PAGE RENDERING
+# ==============================================================================
+
+if st.session_state.current_page == "dashboard":
+    pages.dashboard.render()
+elif st.session_state.current_page == "contrat":
+    pages.contrat.render()
+elif st.session_state.current_page == "inference":
+    pages.inference.render()
 else:
-    st.subheader("Compose Inference")
-    st.info("Section reservee pour les composants de prediction et visualisation.")
+    pages.dashboard.render()
+
+# ==============================================================================
+# FOOTER
+# ==============================================================================
+
+footer()
