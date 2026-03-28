@@ -1,47 +1,75 @@
 
-  # ===============================
-  # docker-compose.yml pour l'API Prime Pricing
-  # ===============================
-  version: '3.9'
+# ===============================
+# docker-compose.yml pour le DEV local
+# - api: FastAPI
+# - app: Streamlit
+# - init_db/test: utilitaires via profiles
+# ===============================
+version: "3.9"
 
-  services:
-    api:
-      build: .
-      container_name: api_prime_pricing
-      command: uvicorn src/api/backend/server:app --host 0.0.0.0 --port 8000
-      ports:
-        - "8000:8000"
-      volumes:
-        - .:/app
-        - db_data:/app/db
-      environment:
-        - PYTHONUNBUFFERED=1
-        - DB_PATH=db/prime_pricing.sqlite
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api_prime_pricing
+    command: uvicorn src/api/backend/server:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - db_data:/app/db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=db/prime_pricing.sqlite
 
-    init_db:
-      build: .
-      command: python src/api/init_db.py
-      volumes:
-        - .:/app
-        - db_data:/app/db
-      environment:
-        - DB_PATH=db/prime_pricing.sqlite
-      depends_on:
-        - api
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: app_prime_pricing
+    command: streamlit run src/app/app.py --server.address=0.0.0.0 --server.port=8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_BASE_URL=http://api:8000
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+    depends_on:
+      - api
 
-    test:
-      build: .
-      command: >
-        /bin/bash -c "python -m unittest discover -s src/models/tests && \
-        ruff check src/ --output-format=github"
-      volumes:
-        - .:/app
-      environment:
-        - PYTHONUNBUFFERED=1
-        - DB_PATH=db/prime_pricing.sqlite
-      depends_on:
-        - api
-        - init_db
+  init_db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python src/api/backend/db_creation/init_db.py
+    volumes:
+      - .:/app
+      - db_data:/app/db
+    environment:
+      - DB_PATH=db/prime_pricing.sqlite
+    depends_on:
+      - api
+    profiles:
+      - tools
 
-  volumes:
-    db_data:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: /bin/bash -c "pytest -q tests && ruff check src/"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=db/prime_pricing.sqlite
+    depends_on:
+      - api
+    profiles:
+      - tools
+
+volumes:
+  db_data:

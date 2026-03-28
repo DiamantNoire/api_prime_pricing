@@ -1,5 +1,7 @@
 """Configuration centralisée pour l'application Streamlit."""
 
+import os
+
 # ==============================================================================
 # THEME & COULEURS
 # ==============================================================================
@@ -59,7 +61,8 @@ PAGES = {
 # API ENDPOINTS
 # ==============================================================================
 
-API_BASE_URL = "http://127.0.0.1:8000"
+# URL de base : utilise la variable d'env en prod, localhost sinon
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 API_TIMEOUT = 10
 
 ENDPOINTS = {

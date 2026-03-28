@@ -1,0 +1,62 @@
+# ===============================
+# render.yaml : Configuration multi-services pour Render
+# ===============================
+
+services:
+  # ====================================
+  # Service 1 : API FastAPI
+  # ====================================
+  - type: web
+    name: api-prime-pricing
+    runtime: docker
+    plan: free
+    dockerfile: ./Dockerfile
+    port: 8000
+    command: uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
+    
+    # Variables d'environnement
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PORT
+        value: "8000"
+    
+    # Sanity check
+    healthCheckPath: /predictio_frequence/health
+    healthCheckInterval: 300
+    
+    # Auto-deploy depuis GitHub
+    branch: main
+    autoDeploy: true
+
+  # ====================================
+  # Service 2 : Streamlit App
+  # ====================================
+  - type: web
+    name: app-prime-pricing
+    runtime: docker
+    plan: free
+    dockerfile: ./Dockerfile.streamlit
+    port: 8501
+    command: streamlit run src/app/app.py --server.port=8501 --server.address=0.0.0.0
+    
+    # Variables d'environnement
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PORT
+        value: "8501"
+      - key: STREAMLIT_SERVER_HEADLESS
+        value: "true"
+      - key: STREAMLIT_SERVER_ENABLE_CORS
+        value: "false"
+      - key: API_BASE_URL
+        value: https://api-prime-pricing.onrender.com
+    
+    # Sanity check
+    healthCheckPath: /
+    healthCheckInterval: 300
+    
+    # Auto-deploy depuis GitHub
+    branch: main
+    autoDeploy: true
