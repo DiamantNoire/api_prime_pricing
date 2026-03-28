@@ -1,18 +1,19 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import streamlit as st
 
-from . import config
-from .layouts import main_layout, footer
-from . import pages
+# Permet d'executer l'app via `streamlit run src/app/app.py`
+# en rendant le package `app` resolvable depuis /app/src.
+SRC_DIR = Path(__file__).resolve().parents[1]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
-try:
-    import streamlit_antd_components as sac
-except ImportError as exc:
-    raise RuntimeError(
-        "Le paquet 'streamlit-antd-components' est requis. "
-        "Installe-le avec: uv add streamlit-antd-components"
-    ) from exc
+from app import config
+from app.layouts import footer, main_layout
+from app.pages import contrat, dashboard, inference
 
 
 # ==============================================================================
@@ -56,13 +57,13 @@ if selected_page and selected_page in page_mapping:
 # ==============================================================================
 
 if st.session_state.current_page == "dashboard":
-    pages.dashboard.render()
+    dashboard.render()
 elif st.session_state.current_page == "contrat":
-    pages.contrat.render()
+    contrat.render()
 elif st.session_state.current_page == "inference":
-    pages.inference.render()
+    inference.render()
 else:
-    pages.dashboard.render()
+    dashboard.render()
 
 # ==============================================================================
 # FOOTER
