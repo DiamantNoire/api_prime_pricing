@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir uv
 
 # Copier et installer les dépendances
 COPY requirements.txt ./
-RUN uv pip install -r requirements.txt
+RUN uv pip install --system -r requirements.txt
 
 # Copier tout le code source
 COPY . .
