@@ -18,7 +18,7 @@ class HealthStatus:
     """Représente l'état de santé d'un service."""
 
     name: str
-    status: str  # "ok", "error", "unreachable"
+    status: str  # "ok", "error", "unreachable", "rate_limited"
     description: str
     details: Optional[dict] = None
 
@@ -97,12 +97,27 @@ class HealthMonitor:
             )
 
         except requests.exceptions.HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            if status_code == 429:
+                retry_after = exc.response.headers.get("Retry-After") if exc.response is not None else None
+                logger.warning("✗ API principale limitée (HTTP 429), retry_after=%s", retry_after)
+                return HealthStatus(
+                    name="API Principale",
+                    status="rate_limited",
+                    description="Limite de requêtes atteinte sur l'API (HTTP 429)",
+                    details={
+                        "error": str(exc),
+                        "status_code": status_code,
+                        "retry_after": retry_after,
+                    },
+                )
+
             logger.warning(f"✗ L'API a retourné une erreur HTTP: {exc}")
             return HealthStatus(
                 name="API Principale",
                 status="error",
-                description=f"L'API a retourné une erreur HTTP {exc.response.status_code}",
-                details={"error": str(exc), "status_code": exc.response.status_code},
+                description=f"L'API a retourné une erreur HTTP {status_code}",
+                details={"error": str(exc), "status_code": status_code},
             )
 
         except Exception as exc:
@@ -114,127 +129,107 @@ class HealthMonitor:
                 details={"error": str(exc)},
             )
 
-    def check_frequence_model_health(self) -> HealthStatus:
-        """Vérifie l'état de santé du modèle de fréquence."""
+    def _check_prediction_endpoint_health(self, endpoint_path: str, endpoint_name: str) -> HealthStatus:
+        """Vérifie l'état d'un endpoint de santé lié aux prédictions."""
         try:
-            response = requests.get(
-                f"{self.api_base_url}/predictio_frequence/health",
-                timeout=self.timeout,
-            )
+            url = f"{self.api_base_url}{endpoint_path}"
+            response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
 
-            data = response.json()
-            is_loaded = data.get("model_loaded", False)
+            data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+            api_status = data.get("status")
 
-            logger.debug(
-                f"✓ Modèle Fréquence: loaded={is_loaded}, "
-                f"file_exists={data.get('model_file_exists')}"
+            if api_status == "ok":
+                return HealthStatus(
+                    name=endpoint_name,
+                    status="ok",
+                    description="Endpoint santé opérationnel",
+                    details={
+                        "endpoint": endpoint_path,
+                        "http_status": response.status_code,
+                        "api_status": api_status,
+                    },
+                )
+
+            return HealthStatus(
+                name=endpoint_name,
+                status="error",
+                description="Endpoint santé répond mais signale une erreur applicative",
+                details={
+                    "endpoint": endpoint_path,
+                    "http_status": response.status_code,
+                    "api_status": api_status,
+                    "detail": data.get("detail"),
+                },
             )
 
-            if is_loaded:
-                return HealthStatus(
-                    name="Modèle Fréquence",
-                    status="ok",
-                    description="Le modèle de fréquence est chargé et opérationnel",
-                    details=data,
-                )
-            else:
-                detail_msg = data.get("detail", "Raison inconnue")
-                logger.warning(f"✗ Modèle Fréquence non chargé: {detail_msg}")
-                return HealthStatus(
-                    name="Modèle Fréquence",
-                    status="error",
-                    description=f"Le modèle de fréquence n'est pas chargé: {detail_msg}",
-                    details=data,
-                )
-
         except requests.exceptions.ConnectionError as exc:
-            logger.warning(f"✗ Impossible de vérifier le modèle Fréquence: {exc}")
+            logger.warning("✗ Endpoint %s injoignable: %s", endpoint_path, exc)
             return HealthStatus(
-                name="Modèle Fréquence",
+                name=endpoint_name,
                 status="unreachable",
-                description="Impossible de vérifier l'état du modèle (API indisponible)",
-                details={"error": str(exc)},
+                description="Endpoint injoignable (API indisponible)",
+                details={"endpoint": endpoint_path, "error": str(exc)},
             )
 
         except requests.exceptions.Timeout:
-            logger.warning(f"✗ Timeout lors de la vérification du modèle Fréquence")
+            logger.warning("✗ Timeout endpoint %s", endpoint_path)
             return HealthStatus(
-                name="Modèle Fréquence",
+                name=endpoint_name,
                 status="unreachable",
-                description="Vérification expirée",
-                details={"error": "Timeout"},
+                description="Endpoint non répondu dans le délai imparti",
+                details={"endpoint": endpoint_path, "error": "Timeout"},
+            )
+
+        except requests.exceptions.HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            if status_code == 429:
+                retry_after = exc.response.headers.get("Retry-After") if exc.response is not None else None
+                return HealthStatus(
+                    name=endpoint_name,
+                    status="rate_limited",
+                    description="Limite de requêtes atteinte (HTTP 429)",
+                    details={
+                        "endpoint": endpoint_path,
+                        "status_code": status_code,
+                        "retry_after": retry_after,
+                        "error": str(exc),
+                    },
+                )
+
+            return HealthStatus(
+                name=endpoint_name,
+                status="error",
+                description=f"Endpoint en erreur HTTP {status_code}",
+                details={
+                    "endpoint": endpoint_path,
+                    "status_code": status_code,
+                    "error": str(exc),
+                },
             )
 
         except Exception as exc:
-            logger.exception(f"✗ Erreur lors de la vérification du modèle Fréquence: {exc}")
+            logger.exception("✗ Erreur endpoint %s: %s", endpoint_path, exc)
             return HealthStatus(
-                name="Modèle Fréquence",
+                name=endpoint_name,
                 status="error",
-                description="Une erreur s'est produite",
-                details={"error": str(exc)},
+                description="Erreur inattendue pendant le contrôle d'endpoint",
+                details={"endpoint": endpoint_path, "error": str(exc)},
             )
+
+    def check_frequence_model_health(self) -> HealthStatus:
+        """Compatibilité: vérifie l'endpoint santé de prédiction fréquence."""
+        return self._check_prediction_endpoint_health(
+            endpoint_path="/predictio_frequence/health",
+            endpoint_name="Endpoint Prédiction Fréquence",
+        )
 
     def check_severite_model_health(self) -> HealthStatus:
-        """Vérifie l'état de santé du modèle de sévérité."""
-        try:
-            response = requests.get(
-                f"{self.api_base_url}/predictio_severite/health",
-                timeout=self.timeout,
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            is_loaded = data.get("model_loaded", False)
-
-            logger.debug(
-                f"✓ Modèle Sévérité: loaded={is_loaded}, "
-                f"file_exists={data.get('model_file_exists')}"
-            )
-
-            if is_loaded:
-                return HealthStatus(
-                    name="Modèle Sévérité",
-                    status="ok",
-                    description="Le modèle de sévérité est chargé et opérationnel",
-                    details=data,
-                )
-            else:
-                detail_msg = data.get("detail", "Raison inconnue")
-                logger.warning(f"✗ Modèle Sévérité non chargé: {detail_msg}")
-                return HealthStatus(
-                    name="Modèle Sévérité",
-                    status="error",
-                    description=f"Le modèle de sévérité n'est pas chargé: {detail_msg}",
-                    details=data,
-                )
-
-        except requests.exceptions.ConnectionError as exc:
-            logger.warning(f"✗ Impossible de vérifier le modèle Sévérité: {exc}")
-            return HealthStatus(
-                name="Modèle Sévérité",
-                status="unreachable",
-                description="Impossible de vérifier l'état du modèle (API indisponible)",
-                details={"error": str(exc)},
-            )
-
-        except requests.exceptions.Timeout:
-            logger.warning(f"✗ Timeout lors de la vérification du modèle Sévérité")
-            return HealthStatus(
-                name="Modèle Sévérité",
-                status="unreachable",
-                description="Vérification expirée",
-                details={"error": "Timeout"},
-            )
-
-        except Exception as exc:
-            logger.exception(f"✗ Erreur lors de la vérification du modèle Sévérité: {exc}")
-            return HealthStatus(
-                name="Modèle Sévérité",
-                status="error",
-                description="Une erreur s'est produite",
-                details={"error": str(exc)},
-            )
+        """Compatibilité: vérifie l'endpoint santé de prédiction sévérité."""
+        return self._check_prediction_endpoint_health(
+            endpoint_path="/predictio_severite/health",
+            endpoint_name="Endpoint Prédiction Sévérité",
+        )
 
     def check_database_health(self) -> HealthStatus:
         """Vérifie l'état de santé de la base de données SQLite."""
@@ -323,12 +318,53 @@ class HealthMonitor:
         """Vérifie l'état de santé de tous les services."""
         logger.info("Vérification complète de l'état de santé...")
 
+        main_api_status = self.check_main_api_health()
         statuses = {
-            "main_api": self.check_main_api_health(),
-            "frequence_model": self.check_frequence_model_health(),
-            "severite_model": self.check_severite_model_health(),
+            "main_api": main_api_status,
+            "frequence_model": None,
+            "severite_model": None,
             "database": self.check_database_health(),
         }
+
+        # Limite les appels HTTP en cascade quand l'API principale est déjà en échec.
+        if main_api_status.status == "rate_limited":
+            details = main_api_status.details or {}
+            statuses["frequence_model"] = HealthStatus(
+                name="Endpoint Prédiction Fréquence",
+                status="rate_limited",
+                description="Vérification ignorée: API principale limitée (HTTP 429)",
+                details={
+                    "status_code": 429,
+                    "retry_after": details.get("retry_after"),
+                    "reason": "short_circuit_from_main_api",
+                },
+            )
+            statuses["severite_model"] = HealthStatus(
+                name="Endpoint Prédiction Sévérité",
+                status="rate_limited",
+                description="Vérification ignorée: API principale limitée (HTTP 429)",
+                details={
+                    "status_code": 429,
+                    "retry_after": details.get("retry_after"),
+                    "reason": "short_circuit_from_main_api",
+                },
+            )
+        elif main_api_status.status == "unreachable":
+            statuses["frequence_model"] = HealthStatus(
+                name="Endpoint Prédiction Fréquence",
+                status="unreachable",
+                description="Vérification ignorée: API principale injoignable",
+                details={"reason": "short_circuit_from_main_api"},
+            )
+            statuses["severite_model"] = HealthStatus(
+                name="Endpoint Prédiction Sévérité",
+                status="unreachable",
+                description="Vérification ignorée: API principale injoignable",
+                details={"reason": "short_circuit_from_main_api"},
+            )
+        else:
+            statuses["frequence_model"] = self.check_frequence_model_health()
+            statuses["severite_model"] = self.check_severite_model_health()
 
         # Résumé
         healthy_count = sum(1 for s in statuses.values() if s.is_healthy())
