@@ -2,18 +2,13 @@
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
-import logging
-from typing import Optional
-
+import os
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Request
+from typing import Optional
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-
-from src.api.backend.model_runtime import MODEL_FREQUENCE_PATH
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Frequence
-
-LOGGER = logging.getLogger(__name__)
 
 # =============================================
 #------ CLASSES ----------#
@@ -52,6 +47,17 @@ class FrequenceInput(BaseModel):
 class FrequenceOutput(BaseModel):
     prediction: Optional[float] = None
 
+
+# =============================================
+#-------- CHARGEMENT DES DONNEES -------------#
+# =============================================
+DATA_DIR = os.path.dirname(__file__)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+# --- Input ---
+MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, "output_models", "modeles", "model_frequence.json")
+os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
+
 # =============================================
 #------ ROUTAGE ----------#
 # =============================================
@@ -59,35 +65,62 @@ class FrequenceOutput(BaseModel):
 router = APIRouter()
 
 
-@router.get("/predictio_frequence/health")
-def health_predictio_frequence(request: Request):
-    LOGGER.info("GET /predictio_frequence/health")
-    model = getattr(request.app.state, "frequence_model", None)
-    load_error = getattr(request.app.state, "frequence_model_load_error", None)
+def _build_frequence_model() -> Model_Prediction_Frequence:
+    """Instantiate predictor from complete pre-trained JSON artifact."""
+    model = Model_Prediction_Frequence()
 
+    if not os.path.exists(MODEL_FREQUENCE_PATH):
+        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}")
+
+    try:
+        loaded = model.load_model(MODEL_FREQUENCE_PATH)
+        if not isinstance(loaded, dict) or not loaded.get("xgb_model_json"):
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Le JSON de fréquence chargé n'est pas un artefact complet. "
+                    "Relancer l'entraînement pour générer 'xgb_model_json'."
+                ),
+            )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Erreur chargement artefact frequence JSON: {exc}")
+
+    return model
+
+
+# Chargement unique du modèle entraîné au démarrage du module.
+FREQUENCE_MODEL: Optional[Model_Prediction_Frequence] = None
+FREQUENCE_MODEL_LOAD_ERROR: Optional[str] = None
+
+try:
+    FREQUENCE_MODEL = _build_frequence_model()
+except HTTPException as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc.detail)
+except Exception as exc:
+    FREQUENCE_MODEL_LOAD_ERROR = str(exc)
+
+
+@router.get("/predictio_frequence/health")
+def health_predictio_frequence():
     return {
-        "status": "ok" if model is not None else "error",
-        "model_loaded": model is not None,
-        "model_path": str(MODEL_FREQUENCE_PATH),
-        "model_file_exists": MODEL_FREQUENCE_PATH.exists(),
-        "detail": load_error,
+        "status": "ok" if FREQUENCE_MODEL is not None else "error",
+        "model_loaded": FREQUENCE_MODEL is not None,
+        "model_path": MODEL_FREQUENCE_PATH,
+        "model_file_exists": os.path.exists(MODEL_FREQUENCE_PATH),
+        "detail": FREQUENCE_MODEL_LOAD_ERROR,
     }
 
 @router.post("/predict_frequence", response_model=FrequenceOutput)
-def prediction(input_data: FrequenceInput, request: Request):
-    LOGGER.info("POST /predict_frequence")
-    model: Optional[Model_Prediction_Frequence] = getattr(request.app.state, "frequence_model", None)
-    load_error = getattr(request.app.state, "frequence_model_load_error", None)
-
-    if model is None:
+def prediction(input_data: FrequenceInput):
+    if FREQUENCE_MODEL is None:
         raise HTTPException(
             status_code=500,
             detail=(
-                "Le modele de frequence n'est pas disponible. "
-                f"Detail: {load_error or 'erreur inconnue'}"
+                "Le modèle de fréquence n'est pas disponible. "
+                f"Détail: {FREQUENCE_MODEL_LOAD_ERROR or 'erreur inconnue'}"
             ),
         )
 
     df = pd.DataFrame([input_data.model_dump(exclude_none=True)])
-    y_pred = model.predict(df)
+    y_pred = FREQUENCE_MODEL.predict(df)
     return FrequenceOutput(prediction=float(y_pred[0]))
