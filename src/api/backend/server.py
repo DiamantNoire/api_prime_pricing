@@ -7,6 +7,7 @@ from fastapi.responses import Response
 
 from src.api.backend.controllers.controller_severite import router as severite_router
 from src.api.backend.controllers.controller_frequence import router as frequence_router
+from src.api.backend.controllers.contrat_controller import contrat_router
 
 # =============================================
 #------ AJOUT DES ENDPOINTS ----------#
@@ -18,6 +19,7 @@ app = FastAPI(
 
 app.include_router(severite_router)
 app.include_router(frequence_router)
+app.include_router(contrat_router)
 
 @app.get("/")
 def read_root():

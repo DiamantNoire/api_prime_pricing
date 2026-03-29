@@ -71,6 +71,7 @@ ENDPOINTS = {
     "predict_severite": f"{API_BASE_URL}/predict_severite",
     "health_frequence": f"{API_BASE_URL}/predictio_frequence/health",
     "health_severite": f"{API_BASE_URL}/predictio_severite/health",
+    "contrats": f"{API_BASE_URL}/contrats",
 }
 
 # ==============================================================================
