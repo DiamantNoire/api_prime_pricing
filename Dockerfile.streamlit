@@ -16,8 +16,8 @@ RUN uv pip install --system -r requirements.txt
 # Copier tout le code source
 COPY . .
 
-# Exposer le port Streamlit
-EXPOSE 8501
+# Exposer le port Streamlit (Render injecte PORT dynamiquement)
+EXPOSE 10000
 
-# Commande de lancement (Streamlit)
-CMD ["streamlit", "run", "src/app/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+# Commande de lancement (Streamlit) avec port dynamique Render.
+CMD ["sh", "-c", "streamlit run src/app/app.py --server.port=${PORT:-10000} --server.address=0.0.0.0 --server.headless=true"]
