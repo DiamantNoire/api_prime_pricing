@@ -315,56 +315,13 @@ class HealthMonitor:
             )
 
     def check_all_health(self) -> dict:
-        """Vérifie l'état de santé de tous les services."""
+        """Vérifie l'état de santé global (API principale + base)."""
         logger.info("Vérification complète de l'état de santé...")
 
-        main_api_status = self.check_main_api_health()
         statuses = {
-            "main_api": main_api_status,
-            "frequence_model": None,
-            "severite_model": None,
+            "main_api": self.check_main_api_health(),
             "database": self.check_database_health(),
         }
-
-        # Limite les appels HTTP en cascade quand l'API principale est déjà en échec.
-        if main_api_status.status == "rate_limited":
-            details = main_api_status.details or {}
-            statuses["frequence_model"] = HealthStatus(
-                name="Endpoint Prédiction Fréquence",
-                status="rate_limited",
-                description="Vérification ignorée: API principale limitée (HTTP 429)",
-                details={
-                    "status_code": 429,
-                    "retry_after": details.get("retry_after"),
-                    "reason": "short_circuit_from_main_api",
-                },
-            )
-            statuses["severite_model"] = HealthStatus(
-                name="Endpoint Prédiction Sévérité",
-                status="rate_limited",
-                description="Vérification ignorée: API principale limitée (HTTP 429)",
-                details={
-                    "status_code": 429,
-                    "retry_after": details.get("retry_after"),
-                    "reason": "short_circuit_from_main_api",
-                },
-            )
-        elif main_api_status.status == "unreachable":
-            statuses["frequence_model"] = HealthStatus(
-                name="Endpoint Prédiction Fréquence",
-                status="unreachable",
-                description="Vérification ignorée: API principale injoignable",
-                details={"reason": "short_circuit_from_main_api"},
-            )
-            statuses["severite_model"] = HealthStatus(
-                name="Endpoint Prédiction Sévérité",
-                status="unreachable",
-                description="Vérification ignorée: API principale injoignable",
-                details={"reason": "short_circuit_from_main_api"},
-            )
-        else:
-            statuses["frequence_model"] = self.check_frequence_model_health()
-            statuses["severite_model"] = self.check_severite_model_health()
 
         # Résumé
         healthy_count = sum(1 for s in statuses.values() if s.is_healthy())

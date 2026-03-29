@@ -26,11 +26,11 @@ from app.services import HealthMonitor
 logger = logging.getLogger(__name__)
 
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=600)
 def get_health_status(api_base_url: str = API_BASE_URL, db_path: str = "db/prime_pricing.sqlite"):
     """
     Récupère l'état de santé de tous les services.
-    Les résultats sont cachés pendant 120 secondes.
+    Les résultats sont cachés pendant 600 secondes.
     """
     monitor = HealthMonitor(api_base_url=api_base_url, db_path=db_path, timeout=5)
     return monitor.check_all_health()
@@ -89,18 +89,27 @@ def render() -> None:
 
         section_divider("État du système", icon="speedometer")
 
-        # Bouton de rafraîchissement manuel
-        col_refresh = st.columns([1, 1, 1, 1])
-        with col_refresh[3]:
-            if st.button("🔄 Rafraîchir", use_container_width=True):
+        # Vérification uniquement sur action utilisateur
+        col_btn_1, col_btn_2, _ = st.columns([1, 1, 2])
+        with col_btn_1:
+            run_check = st.button("🩺 Vérifier la santé", type="primary", use_container_width=True)
+        with col_btn_2:
+            if st.button("🔄 Vider cache", use_container_width=True):
                 st.cache_data.clear()
+                st.session_state.pop("dashboard_health_statuses", None)
                 st.rerun()
 
         st.markdown("---")
 
         # Affichage des statuts de santé
         try:
-            health_statuses = get_health_status()
+            if run_check:
+                st.session_state["dashboard_health_statuses"] = get_health_status()
+
+            health_statuses = st.session_state.get("dashboard_health_statuses")
+            if not health_statuses:
+                st.info("Cliquez sur 'Vérifier la santé' pour lancer le contrôle global.")
+                return
 
             # Résumé général
             healthy_services = sum(
@@ -134,23 +143,18 @@ def render() -> None:
             # Affichage des cartes de santé
             st.subheader("🏥 État des services")
 
-            # Rangée 1 : API principale + Modèles + Base de données
-            col1, col2, col3, col4 = st.columns(4)
-
+            # Rangée 1 : API principale + Base de données
+            col1, col2 = st.columns(2)
             render_health_card(health_statuses["main_api"], col1)
-            render_health_card(health_statuses["frequence_model"], col2)
-            render_health_card(health_statuses["severite_model"], col3)
-            render_health_card(health_statuses["database"], col4)
+            render_health_card(health_statuses["database"], col2)
 
             st.markdown("---")
 
             # Section des détails
-            st.subheader("📊 Détails des services")
+            st.subheader("Détails des services")
 
-            tab1, tab2, tab3, tab4 = st.tabs([
+            tab1, tab2 = st.tabs([
                 f"🌐 API Principale",
-                f"📈 Endpoint Fréquence",
-                f"📉 Endpoint Sévérité",
                 f"💾 Base de données",
             ])
 
@@ -158,12 +162,6 @@ def render() -> None:
                 render_health_details(health_statuses["main_api"])
 
             with tab2:
-                render_health_details(health_statuses["frequence_model"])
-
-            with tab3:
-                render_health_details(health_statuses["severite_model"])
-
-            with tab4:
                 render_health_details(health_statuses["database"])
 
         except Exception as exc:
@@ -182,8 +180,6 @@ def render() -> None:
 
             **Services surveillés:**
             - 🌐 **API Principale** - État général de l'API FastAPI
-            - 📈 **Endpoint Fréquence** - État du endpoint santé de prédiction fréquence
-            - 📉 **Endpoint Sévérité** - État du endpoint santé de prédiction sévérité
             - 💾 **Base de données** - État et statistiques de la base SQLite
 
             **Statuts possibles:**
@@ -193,8 +189,9 @@ def render() -> None:
             - ⏳ **Rate limited** - Limite de requêtes atteinte (HTTP 429)
 
             **Notes:**
-            - Les résultats sont mis en cache pendant 120 secondes pour éviter de surcharger l'API
-            - Utilisez le bouton "Rafraîchir" pour forcer une mise à jour immédiate
+            - Le contrôle ne se lance que sur clic du bouton "Vérifier la santé"
+            - Les résultats sont mis en cache pendant 600 secondes pour éviter de surcharger l'API
+            - Utilisez le bouton "Vider cache" pour forcer une mise à jour immédiate
             - Les détails techniques sont disponibles dans les onglets ci-dessus
             """)
 

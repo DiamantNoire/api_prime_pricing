@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from src.api.backend.dto.contrat_dto import (
     ContratCreateDTO,
+    ContratReadDTO,
     ContratResponseDTO,
     ContratUpdateDTO,
 )
@@ -17,25 +18,25 @@ contrat_router = APIRouter(tags=["contrats"])
 contrat_service = ContratService()
 
 
-@contrat_router.get("/contrats", response_model=list[ContratResponseDTO])
+@contrat_router.get("/contrats", response_model=list[ContratReadDTO])
 def get_recent_contrats(limit: int = Query(default=20, ge=1, le=200)):
     """Retourne les derniers contrats enregistrés."""
     try:
         rows = contrat_service.list_recent(limit=limit)
-        return [ContratResponseDTO(**row) for row in rows]
+        return [ContratReadDTO(**row) for row in rows]
     except Exception as exc:
         logger.exception("Erreur lecture des contrats")
         raise HTTPException(status_code=500, detail=f"Erreur lecture contrats: {exc}")
 
 
-@contrat_router.get("/contrats/{id_contrat}", response_model=ContratResponseDTO)
+@contrat_router.get("/contrats/{id_contrat}", response_model=ContratReadDTO)
 def get_contrat(id_contrat: str):
     """Retourne un contrat par son identifiant métier id_contrat."""
     try:
         row = contrat_service.get_by_id_contrat(id_contrat)
         if row is None:
             raise HTTPException(status_code=404, detail=f"Contrat '{id_contrat}' introuvable")
-        return ContratResponseDTO(**row)
+        return ContratReadDTO(**row)
     except HTTPException:
         raise
     except Exception as exc:

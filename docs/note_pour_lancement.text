@@ -350,5 +350,9 @@ fuser -k 8000/tcp
 
 uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
 
+API:
+.venv/bin/uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
+
+
 streamlit run src/app/app.py
 streamlit run src/app/app.py

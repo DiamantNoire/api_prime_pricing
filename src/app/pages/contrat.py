@@ -353,8 +353,8 @@ def render() -> None:
             logger.exception("Erreur chargement contrats récents")
             st.error(f"Impossible de charger les contrats récents: {exc}")
 
-        info_box("API Contrats", ENDPOINTS["contrats"], "Endpoint contrats")
-        st.caption(f"API Endpoint: {ENDPOINTS['contrats']}")
+        #info_box("API Contrats", ENDPOINTS["contrats"], "Endpoint contrats")
+        #st.caption(f"API Endpoint: {ENDPOINTS['contrats']}")
     except Exception:
         logger.exception("Echec du rendu de la page contrat")
         st.error("Une erreur est survenue lors du chargement de la page contrat.")
