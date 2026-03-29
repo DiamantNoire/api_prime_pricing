@@ -346,7 +346,9 @@ colle ce JSON dans le body :
   "poids_vehicule": 1425
 }
 
+fuser -k 8000/tcp
 
+uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
 
 streamlit run src/app/app.py
 streamlit run src/app/app.py

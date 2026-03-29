@@ -6,8 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 
-# Permet d'executer l'app via `streamlit run src/app/app.py`
-# en rendant le package `app` resolvable depuis /app/src.
+
 SRC_DIR = Path(__file__).resolve().parents[1]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -59,6 +58,32 @@ page_mapping = {
 
 if selected_page and selected_page in page_mapping:
     st.session_state.current_page = page_mapping[selected_page]
+
+# Navigation Home dans une page unique
+st.subheader("Home")
+home_labels = [
+    config.PAGES["dashboard"]["name"],
+    config.PAGES["contrat"]["name"],
+    config.PAGES["inference"]["name"],
+]
+current_to_label = {
+    "dashboard": config.PAGES["dashboard"]["name"],
+    "contrat": config.PAGES["contrat"]["name"],
+    "inference": config.PAGES["inference"]["name"],
+}
+label_to_current = {
+    config.PAGES["dashboard"]["name"]: "dashboard",
+    config.PAGES["contrat"]["name"]: "contrat",
+    config.PAGES["inference"]["name"]: "inference",
+}
+
+selected_home = st.radio(
+    "Navigation",
+    options=home_labels,
+    horizontal=True,
+    index=home_labels.index(current_to_label.get(st.session_state.current_page, home_labels[0])),
+)
+st.session_state.current_page = label_to_current[selected_home]
 
 
 # ==============================================================================

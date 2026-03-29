@@ -1,6 +1,7 @@
 """Configuration centralisée pour l'application Streamlit."""
 
 import os
+from typing import Optional
 
 # ==============================================================================
 # THEME & COULEURS
@@ -42,8 +43,8 @@ ANT_DESIGN_CONFIG = {
 # APPLICATION METADATA
 # ==============================================================================
 
-APP_NAME = "Prime Pricing - User Application"
-APP_ICON = "📊"
+APP_NAME = "Prime Estimator"
+APP_ICON = "🛡️"
 APP_LAYOUT = "wide"
 APP_INITIAL_SIDEBAR_STATE = "expanded"
 
@@ -70,6 +71,82 @@ ENDPOINTS = {
     "predict_severite": f"{API_BASE_URL}/predict_severite",
     "health_frequence": f"{API_BASE_URL}/predictio_frequence/health",
     "health_severite": f"{API_BASE_URL}/predictio_severite/health",
+}
+
+# ==============================================================================
+# SCHÉMA DES DONNÉES CONTRAT (pour formulaires et validation)
+# ==============================================================================
+
+# Valeurs possibles pour les champs catégoriques (extraites du jeu d'entraînement)
+FIELD_OPTIONS: dict = {
+    # --- Champs saisis manuellement par l'assureur ---
+    "essence_vehicule": ["Gasoline", "Diesel", "Hybrid"],
+    "type_vehicule": ["Tourism", "Commercial"],
+    "sex_conducteur1": ["M", "F"],
+    # --- Champs également saisis manuellement ---
+    "type_contrat": ["Maxi", "Median1", "Median2", "Mini"],
+    "utilisation": ["WorkPrivate", "AllTrips", "Professional", "Retired"],
+    # --- Champs générés aléatoirement (mais listés pour validation) ---
+    "freq_paiement": ["Monthly", "Quarterly", "Biannual", "Yearly"],
+    "paiement": ["No", "Yes"],
+    "conducteur2": ["No", "Yes"],
+    "sex_conducteur2": ["M", "F"],
+    "marque_vehicule": [
+        "PEUGEOT", "RENAULT", "CITROEN", "VOLKSWAGEN", "BMW", "MERCEDES BENZ",
+        "AUDI", "FORD", "TOYOTA", "HONDA", "NISSAN", "OPEL", "FIAT", "SEAT",
+        "SKODA", "HYUNDAI", "KIA", "MAZDA", "MITSUBISHI", "VOLVO", "LAND ROVER",
+        "JEEP", "DACIA", "ALFA ROMEO", "PORSCHE", "JAGUAR", "LEXUS", "SUBARU",
+        "SUZUKI", "DAEWOO", "CHEVROLET", "CHRYSLER", "SAAB", "LANCIA", "SMART",
+        "MINI", "SSANGYONG", "DAIHATSU", "ISUZU", "ROVER", "MG", "LOTUS",
+        "BENTLEY", "CADILLAC", "DODGE", "HUMMER", "INFINITI", "LADA VAZ",
+        "MORGAN", "PONTIAC", "PININFARINA",
+    ],
+}
+
+# Plages numériques pour la génération aléatoire des champs automatiques
+FIELD_RANGES: dict = {
+    "bonus": (0.5, 1.0, 0.05),           # (min, max, step)
+    "duree_contrat": (1, 36),             # (min, max) en mois
+    "anciennete_info": (0, 20),
+    "age_conducteur2": (18, 85),
+    "anciennete_permis2": (0, 60),
+    "anciennete_vehicule": (0.0, 30.0),
+    "din_vehicule": (50, 300),
+    "debut_vente_vehicule": (1, 20),      # années depuis mise en vente
+    "fin_vente_vehicule": (0, 15),
+    "vitesse_vehicule": (120, 280),
+    "poids_vehicule": (800, 2500),
+}
+
+SCHEMA_TEST_CONTRATS: dict = {
+    "index": Optional[int],
+    "bonus": Optional[float],
+    "type_contrat": Optional[str],
+    "duree_contrat": Optional[int],
+    "anciennete_info": Optional[int],
+    "freq_paiement": Optional[str],
+    "paiement": Optional[str],
+    "utilisation": Optional[str],
+    "code_postal": Optional[str],
+    "conducteur2": Optional[str],
+    "age_conducteur1": Optional[int],
+    "age_conducteur2": Optional[int],
+    "sex_conducteur1": Optional[str],
+    "sex_conducteur2": Optional[str],
+    "anciennete_permis1": Optional[int],
+    "anciennete_permis2": Optional[int],
+    "anciennete_vehicule": Optional[float],
+    "cylindre_vehicule": Optional[int],
+    "din_vehicule": Optional[int],
+    "essence_vehicule": Optional[str],
+    "marque_vehicule": Optional[str],
+    "modele_vehicule": Optional[str],
+    "debut_vente_vehicule": Optional[int],
+    "fin_vente_vehicule": Optional[int],
+    "vitesse_vehicule": Optional[int],
+    "type_vehicule": Optional[str],
+    "prix_vehicule": Optional[int],
+    "poids_vehicule": Optional[int],
 }
 
 # ==============================================================================
