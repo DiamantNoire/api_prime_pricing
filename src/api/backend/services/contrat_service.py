@@ -30,33 +30,45 @@ class ContratService:
         return normalized
 
     def list_recent(self, limit: int = 20) -> list[dict[str, Any]]:
-        logger.info("Lecture des %s derniers contrats", limit)
-        return self.repository.find_recent(limit=limit)
+        try:
+            logger.info("Lecture des %s derniers contrats", limit)
+            return self.repository.find_recent(limit=limit)
+        except Exception as e:
+            logger.exception("Erreur dans list_recent")
+            raise
 
     def get_by_id_contrat(self, id_contrat: str) -> dict[str, Any] | None:
-        logger.info("Lecture contrat id_contrat=%s", id_contrat)
-        return self.repository.find_by_id_contrat(id_contrat)
+        try:
+            logger.info("Lecture contrat id_contrat=%s", id_contrat)
+            return self.repository.find_by_id_contrat(id_contrat)
+        except Exception as e:
+            logger.exception("Erreur dans get_by_id_contrat")
+            raise
 
     def create(self, dto: ContratCreateDTO) -> dict[str, Any]:
-        payload = self._normalize_payload(dto.model_dump())
-        existing = self.repository.find_by_id_contrat(payload["id_contrat"])
-        if existing:
-            raise ValueError(f"Le contrat '{payload['id_contrat']}' existe déjà")
-
-        logger.info("Création contrat id_contrat=%s", payload["id_contrat"])
-        return self.repository.insert(payload)
+        try:
+            payload = self._normalize_payload(dto.model_dump())
+            existing = self.repository.find_by_id_contrat(payload["id_contrat"])
+            if existing:
+                raise ValueError(f"Le contrat '{payload['id_contrat']}' existe déjà")
+            logger.info("Création contrat id_contrat=%s", payload["id_contrat"])
+            return self.repository.insert(payload)
+        except Exception as e:
+            logger.exception("Erreur dans create")
+            raise
 
     def update(self, id_contrat: str, dto: ContratUpdateDTO) -> dict[str, Any]:
-        payload = self._normalize_payload(dto.model_dump())
-        current = self.repository.find_by_id_contrat(id_contrat)
-        if current is None:
-            raise LookupError(f"Contrat '{id_contrat}' introuvable")
-
-        # Le path id_contrat est la référence de mise à jour (pas de renommage ici).
-        payload["id_contrat"] = id_contrat
-
-        logger.info("Mise à jour contrat id_contrat=%s", id_contrat)
-        updated = self.repository.update_by_id_contrat(id_contrat, payload)
-        if updated is None:
-            raise LookupError(f"Contrat '{id_contrat}' introuvable après mise à jour")
-        return updated
+        try:
+            payload = self._normalize_payload(dto.model_dump())
+            current = self.repository.find_by_id_contrat(id_contrat)
+            if current is None:
+                raise LookupError(f"Contrat '{id_contrat}' introuvable")
+            payload["id_contrat"] = id_contrat
+            logger.info("Mise à jour contrat id_contrat=%s", id_contrat)
+            updated = self.repository.update_by_id_contrat(id_contrat, payload)
+            if updated is None:
+                raise LookupError(f"Contrat '{id_contrat}' introuvable après mise à jour")
+            return updated
+        except Exception as e:
+            logger.exception("Erreur dans update")
+            raise

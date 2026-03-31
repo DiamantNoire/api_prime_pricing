@@ -1144,3 +1144,24 @@ class Data_Base_Creator:
             LOGGER.info("Table predictions creee a partir des fichiers de prediction")
         except Exception as e:
             LOGGER.exception("Erreur lors de la creation de la table predictions")
+
+    def create_table_log_api(self):
+        """Créer une table log_api pour stocker les logs d'API dans la base de données."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS log_api (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    logger_name TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    exception TEXT
+                )
+            ''')
+            conn.commit()
+            conn.close()
+            LOGGER.info("Table log_api créée ou déjà existante.")
+        except Exception as e:
+            LOGGER.exception("Erreur lors de la création de la table log_api")
