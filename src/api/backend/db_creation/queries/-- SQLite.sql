@@ -1,0 +1,3 @@
+-- SQLite
+SELECT * FROM log_api
+ORDER BY id DESC LIMIT 5;

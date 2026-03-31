@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
-from typing import Any
 
+from typing import Any
 from src.api.backend.dto.contrat_dto import ContratCreateDTO, ContratUpdateDTO
 from src.api.backend.repositories.contrat_repository import ContratRepository
+from src.api.backend.log_api.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ContratService:

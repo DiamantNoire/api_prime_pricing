@@ -1,5 +1,10 @@
+
 import joblib
 import os
+from src.api.backend.log_api.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 class MLService:
 
@@ -26,8 +31,7 @@ class MLService:
             sinistres_factor = 1 + data["sinistres"] * 0.5
             return base_price * age_factor * bonus_factor * sinistres_factor
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).exception("Erreur dans formule_naive")
+            logger.exception("Erreur dans formule_naive")
             raise
 
     def predict(self, data: dict):
@@ -43,6 +47,5 @@ class MLService:
             else:
                 return self.formule_naive(data)
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).exception("Erreur dans predict")
+            logger.exception("Erreur dans predict")
             raise

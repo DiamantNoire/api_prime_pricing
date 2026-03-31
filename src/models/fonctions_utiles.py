@@ -1114,7 +1114,6 @@ class Data_Base_Creator:
 
     def create_table_historique_contrats(self, csv_path: str):
         """Créer une table historique_contrats à partir du train.csv avec gestion d'erreur."""
-        import pandas as pd
         try:
             df = pd.read_csv(csv_path)
             conn = sqlite3.connect(self.db_path)
@@ -1126,7 +1125,6 @@ class Data_Base_Creator:
 
     def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
-        import pandas as pd
         try:
             df_freq = pd.read_csv(path_pred_frequence)
             df_sev = pd.read_csv(path_pred_severite)
