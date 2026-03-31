@@ -16,6 +16,14 @@ MODEL_SEVERITE_PATH = MODELS_DIR / "model_severite.json"
 
 
 def load_frequence_model() -> Tuple[Optional[Model_Prediction_Frequence], Optional[str]]:
+    """
+    Charge le modèle de prédiction de fréquence depuis un artefact JSON.
+
+    Returns:
+        Tuple[Optional[Model_Prediction_Frequence], Optional[str]]: 
+            - Instance du modèle chargée si succès, sinon None
+            - Message d'erreur ou None si succès
+    """
     model = Model_Prediction_Frequence()
 
     if not MODEL_FREQUENCE_PATH.exists():
@@ -36,6 +44,14 @@ def load_frequence_model() -> Tuple[Optional[Model_Prediction_Frequence], Option
 
 
 def load_severite_model() -> Tuple[Optional[Model_Prediction_Severite], Optional[str]]:
+    """
+    Charge le modèle de prédiction de sévérité depuis un artefact JSON.
+
+    Returns:
+        Tuple[Optional[Model_Prediction_Severite], Optional[str]]: 
+            - Instance du modèle chargée si succès, sinon None
+            - Message d'erreur ou None si succès
+    """
     model = Model_Prediction_Severite()
 
     if not MODEL_SEVERITE_PATH.exists():

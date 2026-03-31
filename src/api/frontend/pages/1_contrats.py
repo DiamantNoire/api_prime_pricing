@@ -1,3 +1,15 @@
+
+"""
+Dashboard Streamlit pour la visualisation et la recherche de contrats d'assurance.
+
+Permet d'afficher :
+    - Tous les contrats
+    - Un contrat par numéro
+    - Les contrats filtrés par type
+
+Les données sont récupérées via l'API FastAPI (contrats endpoints).
+"""
+
 import streamlit as st
 import requests
 import pandas as pd

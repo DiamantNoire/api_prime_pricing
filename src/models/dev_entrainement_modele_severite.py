@@ -23,12 +23,33 @@ CURRENT_DIR = os.path.dirname(__file__)
 if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
-from fonctions_utiles import (run_step,
-                             run_internal_step,
-                             _generer_csv_pred_severite,
-                             Severite_Preprocessing,
-                             Severite_Feature_Engineer,
-                             Model_Prediction_Severite)
+from fonctions_utiles import (
+    run_step,
+    run_internal_step,
+    _generer_csv_pred_severite,
+    Severite_Preprocessing,
+    Severite_Feature_Engineer,
+    Model_Prediction_Severite
+)
+
+# Les fonctions utilitaires importées sont documentées dans leur module d'origine.
+# Ce script principal orchestre l'entraînement du modèle de sévérité, la sauvegarde des artefacts et l'export des prédictions.
+
+# Aucun ajout de fonction locale à documenter ici, mais on ajoute une docstring de module.
+
+"""
+Script principal pour l'entraînement du modèle de prédiction de la sévérité.
+
+Étapes principales :
+    - Chargement et préparation des données d'entraînement et de test
+    - Prétraitement et feature engineering
+    - Entraînement, tuning et évaluation du modèle
+    - Prédiction sur les jeux de données
+    - Sauvegarde des artefacts (modèle, features, métriques, artefacts JSON)
+    - Export des prédictions test au format CSV
+
+Ce script ne définit pas de fonctions ou classes supplémentaires, mais orchestre l'ensemble du pipeline via les fonctions importées.
+"""
                             
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))

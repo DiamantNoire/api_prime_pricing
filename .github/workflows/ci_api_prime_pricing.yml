@@ -2,13 +2,25 @@ name: CI API Prime Pricing
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - dev_log_api_process
+      - dev_render_published_api
+      - dev_test
+      - dev_test_validation
+      - dev_user_application
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - dev_log_api_process
+      - dev_render_published_api
+      - dev_test
+      - dev_test_validation
+      - dev_user_application
 
 jobs:
-  dev:
-    name: Environnement de développement et tests
+  lint-typecheck:
+    name: Linting & Typecheck (ruff, pylint, ty)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -17,21 +29,23 @@ jobs:
         run: pip install uv
       - name: Installer les dépendances (prod + dev)
         run: uv pip install -r requirements.txt
-      - name: Lancer les tests unitaires
-        run: python -m unittest discover -s src/models/tests
+      - name: Lint & Typecheck (ruff, pylint, ty)
+        run: ./lint_and_typecheck.sh
 
-  lint:
-    name: Linting avec ruff
+  tests:
+    name: Tests unitaires (pytest, unittest)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Installer uv
         run: pip install uv
-      - name: Installer ruff
-        run: uv pip install ruff
-      - name: Lint du code
-        run: ruff check src/ --output-format=github
+      - name: Installer les dépendances (prod + dev)
+        run: uv pip install -r requirements.txt
+      - name: Lancer les tests pytest
+        run: pytest
+      - name: Lancer les tests unittest
+        run: python -m unittest discover -s src/models/tests
 
   docker:
     name: Build & Test Docker
@@ -63,8 +77,6 @@ jobs:
         run: |
           curl -f http://localhost:8000/docs
           curl -f http://localhost:8000/openapi.json
-          # Ajoute ici d'autres endpoints à tester (exemple)
-          # curl -f -X POST http://localhost:8000/ton_endpoint -d '{"key": "value"}' -H 'Content-Type: application/json'
       - name: Lancer les tests unitaires et le lint dans le conteneur test
         run: docker-compose run --rm test
       - name: Afficher les logs API
