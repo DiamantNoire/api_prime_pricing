@@ -29,9 +29,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Installer uv
-        run: pip install uv
-      - name: Installer les dépendances (prod + dev)
-        run: uv pip install --system -r requirements.txt
+        uses: astral-sh/setup-uv@v5
+      - name: Créer le venv et installer les dépendances
+        run: uv venv && uv pip install -r requirements.txt
+      - name: Ajouter .venv/bin au PATH
+        run: echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
       - name: Format, Lint & Typecheck
         run: ./lint_and_typecheck.sh
 
@@ -42,9 +44,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Installer uv
-        run: pip install uv
-      - name: Installer les dépendances (prod + dev)
-        run: uv pip install --system -r requirements.txt
+        uses: astral-sh/setup-uv@v5
+      - name: Créer le venv et installer les dépendances
+        run: uv venv && uv pip install -r requirements.txt
+      - name: Ajouter .venv/bin au PATH
+        run: echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
       - name: Lancer les tests pytest
         run: pytest
 
