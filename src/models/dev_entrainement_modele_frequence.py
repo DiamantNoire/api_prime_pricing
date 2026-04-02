@@ -21,7 +21,8 @@ from fonctions_utiles import (
 )
 
 # Les fonctions utilitaires importées sont documentées dans leur module d'origine.
-# Ce script principal orchestre l'entraînement du modèle de fréquence, la sauvegarde des artefacts et l'export des prédictions.
+# Ce script orchestre l'entraînement du modèle de fréquence,
+# la sauvegarde des artefacts et l'export des prédictions.
 
 # Aucun ajout de fonction locale à documenter ici, mais on ajoute une docstring de module.
 
@@ -36,7 +37,8 @@ Script principal pour l'entraînement du modèle de prédiction de la fréquence
     - Sauvegarde des artefacts (modèle, features, métriques, artefacts JSON)
     - Export des prédictions test au format CSV
 
-Ce script ne définit pas de fonctions ou classes supplémentaires, mais orchestre l'ensemble du pipeline via les fonctions importées.
+Ce script ne définit pas de fonctions ou classes supplémentaires,
+mais orchestre l'ensemble du pipeline via les fonctions importées.
 """
 
 if __name__ == "__main__":

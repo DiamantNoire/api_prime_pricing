@@ -10,11 +10,6 @@ from pathlib import Path
 import requests
 import streamlit as st
 
-try:
-    import streamlit_antd_components as sac
-except ImportError as exc:
-    raise RuntimeError("Le paquet 'streamlit-antd-components' est requis.") from exc
-
 SRC_DIR = Path(__file__).resolve().parents[2]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))

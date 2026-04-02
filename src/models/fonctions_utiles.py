@@ -327,7 +327,8 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
 
     def fit(self, X: pd.DataFrame, y: pd.Series = None):
         """
-        Ajuste le schéma interne, sélectionne les features et calcule les valeurs de remplissage sur les données d'entraînement.
+        Ajuste le schéma interne, sélectionne les features et calcule
+        les valeurs de remplissage sur les données d'entraînement.
 
         Args:
             X (pd.DataFrame): Données d'entrée.

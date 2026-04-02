@@ -17,7 +17,7 @@ CURRENT_DIR = os.path.dirname(__file__)
 if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
-from fonctions_utiles import run_step, Data_Base_Creator
+from fonctions_utiles import Data_Base_Creator
 
 LOGGER = logging.getLogger(__name__)
 

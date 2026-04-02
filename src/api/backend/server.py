@@ -12,7 +12,6 @@ et expose les endpoints racine, health et favicon.
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response, JSONResponse
-from fastapi.exception_handlers import RequestValidationError
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.api.backend.log_api.logger import get_logger

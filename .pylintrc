@@ -13,6 +13,8 @@ indent-string='    '
 
 [REPORTS]
 output-format=colorized
+score=yes
+evaluation=10.0
 
 [TYPECHECK]
 ignore-mixin-members=yes
