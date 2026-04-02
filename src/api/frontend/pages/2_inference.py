@@ -1,3 +1,11 @@
+
+"""
+Interface Streamlit pour la prédiction de la prime d'assurance.
+
+Permet à l'utilisateur de saisir les caractéristiques principales (âge, bonus, sinistres)
+et d'obtenir une estimation de la prime via l'API FastAPI (/predict).
+"""
+
 import streamlit as st
 import requests
 

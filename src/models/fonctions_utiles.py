@@ -58,24 +58,6 @@ except ImportError:
     XGBRegressor = None
 
 
-def _build_xgb_regressor() -> "XGBRegressor":
-    """Build a default XGBRegressor or raise an explicit runtime error."""
-    if XGBRegressor is None:
-        raise RuntimeError(
-            "xgboost n'est pas disponible dans l'environnement courant. "
-            "Installez la dépendance 'xgboost' pour charger les artefacts JSON."
-        )
-    return XGBRegressor(
-        objective="reg:squarederror",
-        n_estimators=300,
-        learning_rate=0.05,
-        max_depth=6,
-        subsample=0.9,
-        colsample_bytree=0.9,
-        random_state=42,
-    )
-
-
 
 # ===================================================
 # 2----- CONFIGURATION DE LA BARRE DE CHARGEMENT ---#
@@ -110,7 +92,18 @@ PROGRESS_STYLE_INTERNAL = {
     'leave': True,
 }
 def run_step(desc, fn, *args, **kwargs):
-    """Execute a pipeline step with a progress bar and return its result."""
+    """
+    Exécute une étape de pipeline avec une barre de progression et retourne le résultat.
+
+    Args:
+        desc (str): Description de l'étape.
+        fn (callable): Fonction à exécuter.
+        *args: Arguments positionnels pour la fonction.
+        **kwargs: Arguments nommés pour la fonction.
+
+    Returns:
+        Any: Résultat de la fonction exécutée.
+    """
     bar = tqdm(total=1, desc=desc, **PROGRESS_STYLE)
     try:
         result = fn(*args, **kwargs)
@@ -120,7 +113,18 @@ def run_step(desc, fn, *args, **kwargs):
     return result
 
 def run_internal_step(desc, fn, *args, **kwargs):
-    """Execute an internal sub-step with a dedicated progress style."""
+    """
+    Exécute une sous-étape interne avec une barre de progression dédiée.
+
+    Args:
+        desc (str): Description de la sous-étape.
+        fn (callable): Fonction à exécuter.
+        *args: Arguments positionnels pour la fonction.
+        **kwargs: Arguments nommés pour la fonction.
+
+    Returns:
+        Any: Résultat de la fonction exécutée.
+    """
     bar = tqdm(total=1, desc=desc, **PROGRESS_STYLE_INTERNAL)
     try:
         result = fn(*args, **kwargs)
@@ -136,7 +140,14 @@ def run_internal_step(desc, fn, *args, **kwargs):
 def _generer_csv_pred_freqence(df:pd.DataFrame,
                                 y_pred: pd.Series, 
                                 path:str) -> None:
-    """Export frequency predictions to a two-column CSV (index, pred)."""
+    """
+    Exporte les prédictions de fréquence dans un CSV à deux colonnes (index, pred).
+
+    Args:
+        df (pd.DataFrame): DataFrame contenant les index.
+        y_pred (pd.Series): Prédictions à exporter.
+        path (str): Chemin du fichier de sortie.
+    """
     # Export prédictions test
     submission_df = pd.DataFrame({
         'index': df['index'],
@@ -146,10 +157,23 @@ def _generer_csv_pred_freqence(df:pd.DataFrame,
 
 @dataclass
 class Frequence_Preprocessing:
-    """Prétraitements métier pour la prédiction de la fréquence."""
+    """
+    Prétraitements métier pour la prédiction de la fréquence.
+
+    Attributs:
+        target_col (str): Colonne cible pour la fréquence.
+        second_target_col (str): Colonne secondaire (montant_sinistre).
+        preprocessing_map (dict): Dictionnaire de prétraitements personnalisés.
+        id_columns_by_dataset (dict): Colonnes d'identifiants par dataset.
+    """
 
     def __init__(self, target_col: str = "nombre_sinistres"):
-        """Initialize frequency preprocessing settings and dataset id mappings."""
+        """
+        Initialise les paramètres de prétraitement de la fréquence et les mappings d'identifiants de dataset.
+
+        Args:
+            target_col (str): Nom de la colonne cible (par défaut "nombre_sinistres").
+        """
         self.target_col = target_col
         self.second_target_col = "montant_sinistre"
         self.preprocessing_map = {}
@@ -160,17 +184,39 @@ class Frequence_Preprocessing:
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Return a defensive DataFrame copy from a DataFrame-like input."""
+        """
+        Retourne une copie DataFrame défensive à partir d'une entrée DataFrame-like.
+
+        Args:
+            df (pd.DataFrame): DataFrame ou objet convertible.
+
+        Returns:
+            pd.DataFrame: Copie du DataFrame.
+        """
         if isinstance(df, pd.DataFrame):
             return df.copy()
         return pd.DataFrame(df)
 
     def set_preprocessing_map(self, preprocessing_map: Optional[dict]):
-        """Store a custom preprocessing map used by downstream transformers."""
+        """
+        Stocke un dictionnaire de prétraitement personnalisé utilisé par les transformers.
+
+        Args:
+            preprocessing_map (Optional[dict]): Dictionnaire de prétraitement.
+        """
         self.preprocessing_map = preprocessing_map or {}
 
     def _transform_remove_id_columns(self, name: str, df: pd.DataFrame) -> pd.DataFrame:
-        """Remove dataset-specific identifier columns when configured."""
+        """
+        Supprime les colonnes d'identifiants spécifiques au dataset si configuré.
+
+        Args:
+            name (str): Nom du dataset.
+            df (pd.DataFrame): DataFrame d'entrée.
+
+        Returns:
+            pd.DataFrame: DataFrame sans les colonnes d'identifiants.
+        """
         df = self._ensure_dataframe(df)
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
@@ -178,7 +224,16 @@ class Frequence_Preprocessing:
         return df.drop(columns=cols_to_remove, errors='ignore').copy()
     
     def _transform_remove_null_second_target(self, df:pd.DataFrame, second_target_col: Optional[str]=None) -> pd.DataFrame:
-        """Filter rows where the secondary target column is null."""
+        """
+        Filtre les lignes où la colonne cible secondaire est nulle.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            second_target_col (Optional[str]): Nom de la colonne cible secondaire.
+
+        Returns:
+            pd.DataFrame: DataFrame filtré.
+        """
         df = self._ensure_dataframe(df)
         second_target_col = second_target_col or self.second_target_col
         if second_target_col in df.columns:
@@ -191,7 +246,17 @@ class Frequence_Preprocessing:
         columns_to_remove: Optional[List[str]] = None,
         threshold: Optional[float] = 0.9
     ) -> List[str]:
-        """Find columns whose null ratio is above the provided threshold."""
+        """
+        Trouve les colonnes dont le ratio de valeurs nulles dépasse le seuil fourni.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            columns_to_remove (Optional[List[str]]): Colonnes à retirer.
+            threshold (Optional[float]): Seuil de nullité (par défaut 0.9).
+
+        Returns:
+            List[str]: Liste des colonnes à retirer.
+        """
         df = self._ensure_dataframe(df)
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
@@ -200,7 +265,16 @@ class Frequence_Preprocessing:
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
-        """Drop columns identified during NaN-removal fitting."""
+        """
+        Supprime les colonnes identifiées lors de l'ajustement du retrait de NaN.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            columns_to_remove (Optional[List[str]]): Colonnes à retirer.
+
+        Returns:
+            pd.DataFrame: DataFrame sans les colonnes retirées.
+        """
         df = self._ensure_dataframe(df)
         return df.drop(columns=columns_to_remove or [], errors='ignore')
 
@@ -229,7 +303,22 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         select_numeric_features_only: Optional[bool] = True,
         excluded_feature_columns: Optional[List[str]] = None,
     ):
-        """Configure which preprocessing operations are enabled for this transformer."""
+        """
+        Configure les opérations de prétraitement activées pour ce transformer.
+
+        Args:
+            fit_process_nan_remover (Optional[bool]): Activer l'ajustement du retrait de NaN.
+            transform_process_nan_remover (Optional[bool]): Activer la transformation du retrait de NaN.
+            transform_remove_id_columns (Optional[bool]): Activer la suppression des colonnes d'identifiants.
+            dataset_name_for_id_removal (Optional[str]): Nom du dataset pour la suppression d'ID.
+            threshold (Optional[float]): Seuil de nullité.
+            preprocessing_map (Optional[dict]): Dictionnaire de prétraitement.
+            select_numeric_features_only (Optional[bool]): Sélectionner uniquement les features numériques.
+            excluded_feature_columns (Optional[List[str]]): Colonnes à exclure.
+
+        Returns:
+            Frequence_Feature_Engineer: L'instance configurée.
+        """
         self.booking_applied = {
             "fit_process_nan_remover_key": fit_process_nan_remover,
             "transform_process_nan_remover_key": transform_process_nan_remover,
@@ -244,7 +333,16 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def fit(self, X: pd.DataFrame, y: pd.Series = None):
-        """Fit internal schema, selected features, and fill values on training data."""
+        """
+        Ajuste le schéma interne, sélectionne les features et calcule les valeurs de remplissage sur les données d'entraînement.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series, optional): Cible d'entraînement.
+
+        Returns:
+            Frequence_Feature_Engineer: L'instance ajustée.
+        """
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
         X = X.copy()
@@ -279,7 +377,16 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame, y: pd.Series = None):
-        """Apply fitted preprocessing and return aligned engineered features."""
+        """
+        Applique le prétraitement ajusté et retourne les features alignées.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series, optional): Cible (non utilisée).
+
+        Returns:
+            pd.DataFrame: Données transformées.
+        """
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
         X = X.copy()
@@ -302,7 +409,15 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         return X
 
     def predict(self, X: pd.DataFrame):
-        """Alias of transform for sklearn compatibility in simple pipelines."""
+        """
+        Alias de transform pour la compatibilité sklearn dans les pipelines simples.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            pd.DataFrame: Données transformées.
+        """
         return self.transform(X)
 
     def save_feature_engineer(self, fe, filepath: str):
@@ -331,7 +446,9 @@ class Model_Prediction_Frequence(BaseEstimator):
     def __init__(self):
         """Initialize the frequency model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = None
+        self.pipeline_ = Pipeline([
+            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
+        ])
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
@@ -339,25 +456,30 @@ class Model_Prediction_Frequence(BaseEstimator):
         self.fill_values_ = {}
         self.history_ = []
 
-        try:
-            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
-        except Exception as e:
-            self.pipeline_ = None
-            self.history_.append({"step": "init", "warning": str(e)})
-
-    def _ensure_pipeline(self):
-        """Ensure a trainable/predictable pipeline is available."""
-        if self.pipeline_ is None:
-            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
-
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Return a defensive DataFrame copy from input features."""
+        """
+        Retourne une copie défensive du DataFrame à partir des features d'entrée.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            pd.DataFrame: Copie du DataFrame.
+        """
         if isinstance(X, pd.DataFrame):
             return X.copy()
         return pd.DataFrame(X)
 
     def _prepare_X(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Reindex and impute features according to the fitted training schema."""
+        """
+        Réindexe et impute les features selon le schéma d'entraînement ajusté.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            pd.DataFrame: Données préparées.
+        """
         X = self._ensure_dataframe(X)
         if self.selected_features_:
             X = X.reindex(columns=self.selected_features_)
@@ -366,8 +488,17 @@ class Model_Prediction_Frequence(BaseEstimator):
         return X
 
     def tune_XGBRegressor_hyperparameters(self, X, y, param_grid=None):
-        """Tune XGBRegressor hyperparameters via cross-validation."""
-        self._ensure_pipeline()
+        """
+        Optimise les hyperparamètres du XGBRegressor par validation croisée.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series): Cible d'entraînement.
+            param_grid (dict, optional): Grille d'hyperparamètres.
+
+        Returns:
+            dict: Résultats de la recherche de grille.
+        """
         X = self._ensure_dataframe(X)
         self.selected_features_ = list(X.columns)
         num = X.select_dtypes(include=[np.number])
@@ -406,8 +537,16 @@ class Model_Prediction_Frequence(BaseEstimator):
         }
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
-        """Fit the frequency classification pipeline."""
-        self._ensure_pipeline()
+        """
+        Ajuste le pipeline de classification de la fréquence.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series): Cible d'entraînement.
+
+        Returns:
+            Model_Prediction_Frequence: L'instance ajustée.
+        """
         X = self._prepare_X(X)
         self.pipeline_.fit(X, y)
         self.history_.append({
@@ -418,7 +557,15 @@ class Model_Prediction_Frequence(BaseEstimator):
         return self
 
     def predict(self, X: pd.DataFrame):
-        """Predict frequency classes for prepared feature rows."""
+        """
+        Prédit les classes de fréquence pour les features préparées.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            np.ndarray: Prédictions de fréquence.
+        """
         X = self._prepare_X(X)
         return self.pipeline_.predict(X)
 
@@ -427,7 +574,18 @@ class Model_Prediction_Frequence(BaseEstimator):
                 y_pred_train: np.ndarray,
                 y_valid: Optional[pd.Series] = None,
                 y_pred_valid: Optional[pd.Series] = None) -> Dict[str, Any]:
-        """Compute regression metrics for train and optional validation sets."""
+        """
+        Calcule les métriques de régression pour l'entraînement et éventuellement la validation.
+
+        Args:
+            y_train (pd.Series): Cible d'entraînement.
+            y_pred_train (np.ndarray): Prédictions sur l'entraînement.
+            y_valid (Optional[pd.Series]): Cible de validation.
+            y_pred_valid (Optional[pd.Series]): Prédictions sur la validation.
+
+        Returns:
+            Dict[str, Any]: Dictionnaire des métriques.
+        """
         out = {
             "train": {
                 "rmse": root_mean_squared_error(y_train, y_pred_train),
@@ -485,43 +643,31 @@ class Model_Prediction_Frequence(BaseEstimator):
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
-        suffix = Path(filepath).suffix.lower()
-
         # Preferred format: JSON complete artifact.
-        if suffix == ".json":
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    loaded = json.load(f)
-            except Exception as e:
-                raise RuntimeError(f"JSON invalide pour l'artefact fréquence: {e}") from e
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
 
-            if not isinstance(loaded, dict):
-                raise RuntimeError("Artefact fréquence JSON invalide: structure non-dictionnaire")
+            if isinstance(loaded, dict):
+                self.model_name_ = loaded.get("model_name_", self.model_name_)
+                self.best_params_ = loaded.get("best_params_", self.best_params_)
+                self.best_score_ = loaded.get("best_score_", self.best_score_)
+                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
+                self.history_ = loaded.get("history_", self.history_)
 
-            self.model_name_ = loaded.get("model_name_", self.model_name_)
-            self.best_params_ = loaded.get("best_params_", self.best_params_)
-            self.best_score_ = loaded.get("best_score_", self.best_score_)
-            self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
-            self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
-            self.history_ = loaded.get("history_", self.history_)
-
-            xgb_model_json = loaded.get("xgb_model_json")
-            if xgb_model_json:
-                try:
-                    xgb_model = _build_xgb_regressor()
-                except Exception as e:
-                    raise RuntimeError(f"Impossible de charger le modèle fréquence: {e}") from e
-
-                with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
-                    tmp.write(xgb_model_json)
-                    tmp_path = tmp.name
-                try:
+                xgb_model_json = loaded.get("xgb_model_json")
+                if xgb_model_json:
+                    xgb_model = XGBRegressor()
+                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                        tmp.write(xgb_model_json)
+                        tmp_path = tmp.name
                     xgb_model.load_model(tmp_path)
-                finally:
                     os.unlink(tmp_path)
-                self.pipeline_ = Pipeline([("model", xgb_model)])
-
-            return loaded
+                    self.pipeline_ = Pipeline([("model", xgb_model)])
+                return loaded
+        except Exception:
+            pass
 
         # Legacy fallback: pickle artifact.
         try:
@@ -634,7 +780,12 @@ class Severite_Preprocessing:
     """Prétraitements métier pour la prédiction de la sévérité."""
 
     def __init__(self, target_col: str = "montant_sinistre"):
-        """Initialize severity preprocessing settings and dataset id mappings."""
+        """
+        Initialise les paramètres de prétraitement de la sévérité et les mappings d'identifiants de dataset.
+
+        Args:
+            target_col (str): Nom de la colonne cible (par défaut "montant_sinistre").
+        """
         self.target_col = target_col
         self.preprocessing_map = {}
         self.categorical_features = []
@@ -645,13 +796,30 @@ class Severite_Preprocessing:
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Return a defensive DataFrame copy from a DataFrame-like input."""
+        """
+        Retourne une copie DataFrame défensive à partir d'une entrée DataFrame-like.
+
+        Args:
+            df (pd.DataFrame): DataFrame ou objet convertible.
+
+        Returns:
+            pd.DataFrame: Copie du DataFrame.
+        """
         if isinstance(df, pd.DataFrame):
             return df.copy()
         return pd.DataFrame(df)
 
     def _transform_remove_id_columns(self, name: str, df: pd.DataFrame) -> pd.DataFrame:
-        """Remove dataset-specific identifier columns when configured."""
+        """
+        Supprime les colonnes d'identifiants spécifiques au dataset si configuré.
+
+        Args:
+            name (str): Nom du dataset.
+            df (pd.DataFrame): DataFrame d'entrée.
+
+        Returns:
+            pd.DataFrame: DataFrame sans les colonnes d'identifiants.
+        """
         df = self._ensure_dataframe(df)
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
@@ -659,7 +827,16 @@ class Severite_Preprocessing:
         return df.drop(columns=cols_to_remove, errors='ignore')
 
     def _transform_remove_zero_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
-        """Filter rows where the target is equal to zero."""
+        """
+        Filtre les lignes où la cible est égale à zéro.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            target_col (Optional[str]): Nom de la colonne cible.
+
+        Returns:
+            pd.DataFrame: DataFrame filtré.
+        """
         df = self._ensure_dataframe(df)
         target_col = target_col or self.target_col
         if target_col in df.columns:
@@ -668,11 +845,29 @@ class Severite_Preprocessing:
 
     # Compatibilité avec le code existant
     def _transform_remove_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
-        """Compatibility alias to remove rows with a zero target."""
+        """
+        Alias de compatibilité pour retirer les lignes avec une cible à zéro.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            target_col (Optional[str]): Nom de la colonne cible.
+
+        Returns:
+            pd.DataFrame: DataFrame filtré.
+        """
         return self._transform_remove_zero_target(df, target_col=target_col)
 
     def _transform_preprocess_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
-        """Filter rows where the target column is null."""
+        """
+        Filtre les lignes où la colonne cible est nulle.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            target_col (Optional[str]): Nom de la colonne cible.
+
+        Returns:
+            pd.DataFrame: DataFrame filtré.
+        """
         df = self._ensure_dataframe(df)
         target_col = target_col or self.target_col
         if target_col in df.columns:
@@ -680,7 +875,12 @@ class Severite_Preprocessing:
         return df
 
     def set_preprocessing_map(self, preprocessing_map: Optional[dict]):
-        """Store a custom preprocessing map used by downstream transformers."""
+        """
+        Stocke un dictionnaire de prétraitement personnalisé utilisé par les transformers.
+
+        Args:
+            preprocessing_map (Optional[dict]): Dictionnaire de prétraitement.
+        """
         self.preprocessing_map = preprocessing_map or {}
 
     def _fit_preprocess_NanRemover(
@@ -689,7 +889,17 @@ class Severite_Preprocessing:
         columns_to_remove: Optional[List[str]] = None,
         threshold: Optional[float] = 0.9
     ) -> List[str]:
-        """Find columns whose null ratio is above the provided threshold."""
+        """
+        Trouve les colonnes dont le ratio de valeurs nulles dépasse le seuil fourni.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            columns_to_remove (Optional[List[str]]): Colonnes à retirer.
+            threshold (Optional[float]): Seuil de nullité (par défaut 0.9).
+
+        Returns:
+            List[str]: Liste des colonnes à retirer.
+        """
         df = self._ensure_dataframe(df)
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
@@ -698,7 +908,16 @@ class Severite_Preprocessing:
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
-        """Drop columns identified during NaN-removal fitting."""
+        """
+        Supprime les colonnes identifiées lors de l'ajustement du retrait de NaN.
+
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée.
+            columns_to_remove (Optional[List[str]]): Colonnes à retirer.
+
+        Returns:
+            pd.DataFrame: DataFrame sans les colonnes retirées.
+        """
         df = self._ensure_dataframe(df)
         return df.drop(columns=columns_to_remove or [], errors='ignore')
 
@@ -859,7 +1078,9 @@ class Model_Prediction_Severite(BaseEstimator):
     def __init__(self):
         """Initialize the severity model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = None
+        self.pipeline_ = Pipeline([
+            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
+        ])
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
@@ -867,25 +1088,30 @@ class Model_Prediction_Severite(BaseEstimator):
         self.fill_values_ = {}
         self.history_ = []
 
-        try:
-            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
-        except Exception as e:
-            self.pipeline_ = None
-            self.history_.append({"step": "init", "warning": str(e)})
-
-    def _ensure_pipeline(self):
-        """Ensure a trainable/predictable pipeline is available."""
-        if self.pipeline_ is None:
-            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
-
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Return a defensive DataFrame copy from input features."""
+        """
+        Retourne une copie défensive du DataFrame à partir des features d'entrée.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            pd.DataFrame: Copie du DataFrame.
+        """
         if isinstance(X, pd.DataFrame):
             return X.copy()
         return pd.DataFrame(X)
 
     def _prepare_X(self, X: pd.DataFrame) -> pd.DataFrame:
-        """Reindex and impute features according to the fitted training schema."""
+        """
+        Réindexe et impute les features selon le schéma d'entraînement ajusté.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            pd.DataFrame: Données préparées.
+        """
         X = self._ensure_dataframe(X)
 
         if self.selected_features_:
@@ -897,8 +1123,19 @@ class Model_Prediction_Severite(BaseEstimator):
         return X
 
     def tune_GBRegressor_hyperparameters(self, X, y, param_grid=None, cv=5, scoring='neg_mean_squared_error'):
-        """Tune GradientBoostingRegressor hyperparameters via cross-validation."""
-        self._ensure_pipeline()
+        """
+        Optimise les hyperparamètres du GradientBoostingRegressor par validation croisée.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series): Cible d'entraînement.
+            param_grid (dict, optional): Grille d'hyperparamètres.
+            cv (int, optional): Nombre de folds pour la validation croisée.
+            scoring (str, optional): Métrique de scoring.
+
+        Returns:
+            dict: Résultats de la recherche de grille.
+        """
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -948,8 +1185,16 @@ class Model_Prediction_Severite(BaseEstimator):
         }
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
-        """Fit the severity regression pipeline."""
-        self._ensure_pipeline()
+        """
+        Ajuste le pipeline de régression de la sévérité.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+            y (pd.Series): Cible d'entraînement.
+
+        Returns:
+            Model_Prediction_Severite: L'instance ajustée.
+        """
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -972,7 +1217,15 @@ class Model_Prediction_Severite(BaseEstimator):
         return self
 
     def predict(self, X: pd.DataFrame):
-        """Predict claim severity values for prepared feature rows."""
+        """
+        Prédit les valeurs de sévérité pour les features préparées.
+
+        Args:
+            X (pd.DataFrame): Données d'entrée.
+
+        Returns:
+            np.ndarray: Prédictions de sévérité.
+        """
         X_prepared = self._prepare_X(X)
         return self.pipeline_.predict(X_prepared)
 
@@ -980,7 +1233,18 @@ class Model_Prediction_Severite(BaseEstimator):
                 y_pred_train: pd.Series,
                 y_valid: Optional[pd.Series] = None, 
                 y_pred_valid: Optional[pd.Series] = None) -> Dict[str, Any]:
-        """Compute regression metrics for train and optional validation sets."""
+        """
+        Calcule les métriques de régression pour l'entraînement et éventuellement la validation.
+
+        Args:
+            y_train (pd.Series): Cible d'entraînement.
+            y_pred_train (pd.Series): Prédictions sur l'entraînement.
+            y_valid (Optional[pd.Series]): Cible de validation.
+            y_pred_valid (Optional[pd.Series]): Prédictions sur la validation.
+
+        Returns:
+            Dict[str, Any]: Dictionnaire des métriques.
+        """
         results = {
             "train": {
                 "rmse": root_mean_squared_error(y_train, y_pred_train),
@@ -1048,57 +1312,30 @@ class Model_Prediction_Severite(BaseEstimator):
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
-        suffix = Path(filepath).suffix.lower()
-
         # Preferred format: JSON complete artifact with xgb_model_json.
-        if suffix == ".json":
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    loaded = json.load(f)
-            except Exception as e:
-                raise RuntimeError(f"JSON invalide pour l'artefact sévérité: {e}") from e
-
-            if not isinstance(loaded, dict):
-                raise RuntimeError("Artefact sévérité JSON invalide: structure non-dictionnaire")
-
-            self.model_name_ = loaded.get("model_name_", self.model_name_)
-            self.best_params_ = loaded.get("best_params_", self.best_params_)
-            self.best_score_ = loaded.get("best_score_", self.best_score_)
-            self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
-            self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
-            self.history_ = loaded.get("history_", self.history_)
-
-            xgb_model_json = loaded.get("xgb_model_json")
-            if xgb_model_json:
-                try:
-                    xgb_model = _build_xgb_regressor()
-                except Exception as e:
-                    raise RuntimeError(f"Impossible de charger le modèle sévérité: {e}") from e
-
-                with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
-                    tmp.write(xgb_model_json)
-                    tmp_path = tmp.name
-                try:
-                    xgb_model.load_model(tmp_path)
-                finally:
-                    os.unlink(tmp_path)
-                self.pipeline_ = Pipeline([("model", xgb_model)])
-
-            return loaded
-
-        # Legacy fallback: pickle artifact.
         try:
-            with open(filepath, 'rb') as f:
-                loaded = pickle.load(f)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+
             if isinstance(loaded, dict):
-                self.pipeline_ = loaded.get("pipeline_", self.pipeline_)
-                self.best_estimator_ = loaded.get("best_estimator_", self.best_estimator_)
+                self.model_name_ = loaded.get("model_name_", self.model_name_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
                 self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
                 self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
-                return loaded
-            return None
+                self.history_ = loaded.get("history_", self.history_)
+
+                xgb_model_json = loaded.get("xgb_model_json")
+                if xgb_model_json:
+                    xgb_model = XGBRegressor()
+                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                        tmp.write(xgb_model_json)
+                        tmp_path = tmp.name
+                    xgb_model.load_model(tmp_path)
+                    os.unlink(tmp_path)
+                    self.pipeline_ = Pipeline([("model", xgb_model)])
+
+            return loaded
         except Exception as e:
             LOGGER.exception("Erreur lors du chargement du modele severite")
             return None
@@ -1221,24 +1458,3 @@ class Data_Base_Creator:
             LOGGER.info("Table predictions creee a partir des fichiers de prediction")
         except Exception as e:
             LOGGER.exception("Erreur lors de la creation de la table predictions")
-
-    def create_table_log_api(self):
-        """Créer une table log_api pour stocker les logs d'API dans la base de données."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS log_api (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT NOT NULL,
-                    level TEXT NOT NULL,
-                    logger_name TEXT NOT NULL,
-                    message TEXT NOT NULL,
-                    exception TEXT
-                )
-            ''')
-            conn.commit()
-            conn.close()
-            LOGGER.info("Table log_api créée ou déjà existante.")
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la création de la table log_api")

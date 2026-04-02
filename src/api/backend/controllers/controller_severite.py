@@ -15,6 +15,38 @@ from src.models.fonctions_utiles import Model_Prediction_Severite
 #------ CLASSES ----------#
 # =============================================
 class SeveriteInput(BaseModel):
+    """
+    Modèle d'entrée pour la prédiction de la sévérité d'un contrat d'assurance auto.
+    
+    Args:
+        bonus (Optional[float]): Bonus-malus du contrat.
+        type_contrat (Optional[str]): Type de contrat souscrit.
+        duree_contrat (Optional[int]): Durée du contrat en mois.
+        anciennete_info (Optional[int]): Ancienneté de l'information sur le contrat.
+        freq_paiement (Optional[str]): Fréquence de paiement.
+        paiement (Optional[str]): Statut du paiement.
+        utilisation (Optional[str]): Type d'utilisation du véhicule.
+        code_postal (Optional[str]): Code postal du souscripteur.
+        conducteur2 (Optional[str]): Présence d'un second conducteur.
+        age_conducteur1 (Optional[int]): Âge du conducteur principal.
+        age_conducteur2 (Optional[int]): Âge du second conducteur.
+        sex_conducteur1 (Optional[str]): Sexe du conducteur principal.
+        sex_conducteur2 (Optional[str]): Sexe du second conducteur.
+        anciennete_permis1 (Optional[int]): Ancienneté du permis du conducteur principal.
+        anciennete_permis2 (Optional[int]): Ancienneté du permis du second conducteur.
+        anciennete_vehicule (Optional[float]): Ancienneté du véhicule.
+        cylindre_vehicule (Optional[int]): Cylindrée du véhicule.
+        din_vehicule (Optional[int]): DIN du véhicule.
+        essence_vehicule (Optional[str]): Type de carburant.
+        marque_vehicule (Optional[str]): Marque du véhicule.
+        modele_vehicule (Optional[str]): Modèle du véhicule.
+        debut_vente_vehicule (Optional[int]): Année de début de commercialisation.
+        fin_vente_vehicule (Optional[int]): Année de fin de commercialisation.
+        vitesse_vehicule (Optional[int]): Vitesse maximale du véhicule.
+        type_vehicule (Optional[str]): Type de véhicule.
+        prix_vehicule (Optional[int]): Prix du véhicule.
+        poids_vehicule (Optional[int]): Poids du véhicule.
+    """
     bonus:                  Optional[float] = None
     type_contrat:           Optional[str]   = None
     duree_contrat:          Optional[int]   = None
@@ -47,6 +79,15 @@ class SeveriteInput(BaseModel):
     __schema__ = SCHEMA_TEST_CONTRATS
 
 class SeveriteOutput(BaseModel):
+    """
+    Modèle de sortie pour la prédiction de la sévérité.
+    
+    Args:
+        prediction (Optional[float]): Valeur prédite de la sévérité d'accident.
+    
+    Returns:
+        dict: Un dictionnaire contenant la prédiction de la sévérité.
+    """
     prediction: Optional[float] = None
 
 
@@ -113,6 +154,19 @@ def health_predictio_severite():
 
 @router.post("/predict_severite", response_model=SeveriteOutput)
 def prediction(input_data: SeveriteInput):
+    """
+    Prédiction de la sévérité d'un contrat d'assurance auto.
+    
+    Paramètres
+    ----------
+    input_data : SeveriteInput
+        Données d'entrée du contrat (voir modèle Pydantic).
+    
+    Retour
+    ------
+    SeveriteOutput
+        Prédiction de la sévérité (float).
+    """
     if SEVERITE_MODEL is None:
         raise HTTPException(
             status_code=500,

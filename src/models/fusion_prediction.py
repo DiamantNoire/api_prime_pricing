@@ -25,7 +25,18 @@ LOGGER = logging.getLogger(__name__)
                             
 
 def run_step(step_name: str, func, *args, **kwargs):
-    """Exécute une étape du pipeline avec logs simples."""
+    """
+    Exécute une étape du pipeline avec logs simples.
+
+    Args:
+        step_name (str): Nom de l'étape à logger.
+        func (callable): Fonction à exécuter.
+        *args: Arguments positionnels pour la fonction.
+        **kwargs: Arguments nommés pour la fonction.
+
+    Returns:
+        Any: Résultat de la fonction exécutée.
+    """
     LOGGER.info("[STEP] %s ...", step_name)
     result = func(*args, **kwargs)
     LOGGER.info("[OK] %s", step_name)
@@ -33,7 +44,15 @@ def run_step(step_name: str, func, *args, **kwargs):
 
 
 def _to_json_serializable(value: Any) -> Any:
-    """Convertit récursivement un objet Python en type sérialisable JSON."""
+    """
+    Convertit récursivement un objet Python en type sérialisable JSON.
+
+    Args:
+        value (Any): Objet Python à convertir.
+
+    Returns:
+        Any: Objet converti en type compatible JSON.
+    """
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
 
@@ -59,7 +78,16 @@ def _to_json_serializable(value: Any) -> Any:
 
 
 def _dump_pickle_to_json(pickle_path: str, json_path: str) -> None:
-    """Charge un pickle modèle et exporte ses informations importantes en JSON."""
+    """
+    Charge un modèle pickle et exporte ses informations importantes en JSON.
+
+    Args:
+        pickle_path (str): Chemin du fichier pickle à charger.
+        json_path (str): Chemin du fichier JSON de sortie.
+
+    Returns:
+        None
+    """
     with open(pickle_path, "rb") as file_handler:
         artifact = pickle.load(file_handler)
 

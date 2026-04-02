@@ -1,3 +1,9 @@
+"""
+Serveur FastAPI principal pour l'API Prime Pricing.
+
+Ce module instancie l'application FastAPI, inclut les routers principaux,
+et expose les endpoints racine, health et favicon.
+"""
 # --*- coding: utf-8 -*-
 # =============================================
 #------ IMPORTATIONS DES LIBRAIRIES ----------#
@@ -55,17 +61,38 @@ app.include_router(severite_router)
 app.include_router(frequence_router)
 app.include_router(contrat_router)
 
-@app.get("/")
+
+@app.get("/", summary="Racine API", tags=["root"])
 def read_root():
+    """
+    Endpoint racine de l'API.
+
+    Returns:
+        dict: Message de statut de l'API.
+    """
     return {"message": "API Prime Pricing is running"}
 
 
-@app.get("/health")
+
+@app.get("/health", summary="Healthcheck", tags=["monitoring"])
 def health():
+    """
+    Endpoint de vérification de santé de l'API.
+
+    Returns:
+        dict: Statut de santé.
+    """
     return {"status": "ok"}
 
-@app.get("/favicon.ico")
+
+@app.get("/favicon.ico", include_in_schema=False)
 def favicon():
+    """
+    Endpoint favicon (évite les erreurs 404 navigateur).
+
+    Returns:
+        Response: Réponse vide avec code 204.
+    """
     return Response(status_code=204)
 
 

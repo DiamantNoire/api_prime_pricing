@@ -1,0 +1,40 @@
+[MASTER]
+# Fichier de configuration Pylint
+
+ignore=__pycache__,.venv,output_models,asset,db,docs
+jobs=1
+
+[MESSAGES CONTROL]
+disable=C0114,C0115,C0116,R0903
+
+[FORMAT]
+max-line-length=120
+indent-string='    '
+
+[REPORTS]
+output-format=colorized
+
+[TYPECHECK]
+ignore-mixin-members=yes
+
+[DESIGN]
+max-args=8
+max-locals=20
+max-branches=15
+max-statements=50
+max-parents=7
+max-attributes=10
+
+[LOGGING]
+logging-modules=logging
+
+[IMPORTS]
+extension-pkg-whitelist=numpy,pandas,sklearn,xgboost
+
+[SIMILARITIES]
+min-similarity-lines=4
+
+[VARIABLES]
+additional-builtins=__name__
+
+[PYLINT]

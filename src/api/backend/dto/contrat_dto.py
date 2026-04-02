@@ -8,7 +8,44 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ContratBaseDTO(BaseModel):
-    """Structure contractuelle utilisée pour l'insertion et la mise à jour."""
+    """
+    Structure contractuelle Pydantic utilisée pour l'insertion et la mise à jour d'un contrat.
+    Tous les champs sont validés et documentés pour l'API.
+
+    Args:
+        id_client (str): Identifiant du client.
+        id_vehicule (str): Identifiant du véhicule.
+        id_contrat (str): Identifiant du contrat.
+        bonus (float): Bonus-malus du contrat.
+        type_contrat (str): Type de contrat souscrit.
+        duree_contrat (int): Durée du contrat en mois.
+        anciennete_info (int): Ancienneté de l'information sur le contrat.
+        freq_paiement (str): Fréquence de paiement.
+        paiement (str): Statut du paiement.
+        utilisation (str): Type d'utilisation du véhicule.
+        code_postal (str): Code postal du souscripteur.
+        conducteur2 (str): Présence d'un second conducteur.
+        age_conducteur1 (int): Âge du conducteur principal.
+        age_conducteur2 (int): Âge du second conducteur.
+        sex_conducteur1 (str): Sexe du conducteur principal.
+        sex_conducteur2 (str): Sexe du second conducteur.
+        anciennete_permis1 (int): Ancienneté du permis du conducteur principal.
+        anciennete_permis2 (int): Ancienneté du permis du second conducteur.
+        anciennete_vehicule (float): Ancienneté du véhicule.
+        cylindre_vehicule (int): Cylindrée du véhicule.
+        din_vehicule (int): DIN du véhicule.
+        essence_vehicule (str): Type de carburant.
+        marque_vehicule (str): Marque du véhicule.
+        modele_vehicule (str): Modèle du véhicule.
+        debut_vente_vehicule (int): Année de début de commercialisation.
+        fin_vente_vehicule (int): Année de fin de commercialisation.
+        vitesse_vehicule (int): Vitesse maximale du véhicule.
+        type_vehicule (str): Type de véhicule.
+        prix_vehicule (int): Prix du véhicule.
+        poids_vehicule (int): Poids du véhicule.
+        nombre_sinistres (int): Nombre de sinistres déclarés.
+        montant_sinistre (float): Montant total des sinistres.
+    """
 
     id_client: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     id_vehicule: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
@@ -65,21 +102,77 @@ class ContratBaseDTO(BaseModel):
 
 
 class ContratCreateDTO(ContratBaseDTO):
-    """DTO utilisé à la création."""
+    """
+    DTO utilisé à la création d'un contrat (POST).
+    
+    Returns:
+        dict: Un dictionnaire représentant le contrat créé.
+    """
 
 
 class ContratUpdateDTO(ContratBaseDTO):
-    """DTO utilisé à la mise à jour complète (PUT)."""
+    """
+    DTO utilisé à la mise à jour complète d'un contrat (PUT).
+    
+    Returns:
+        dict: Un dictionnaire représentant le contrat mis à jour.
+    """
 
 
 class ContratResponseDTO(ContratBaseDTO):
-    """DTO de réponse API."""
+    """
+    DTO de réponse API pour un contrat (GET).
+    
+    Args:
+        index (Optional[int]): Index du contrat dans la base.
+    Returns:
+        dict: Un dictionnaire représentant le contrat retourné par l'API.
+    """
 
     index: Optional[int] = None
 
 
 class ContratReadDTO(BaseModel):
-    """DTO de lecture tolérant pour les données historiques en base."""
+    """
+    DTO de lecture tolérant pour les données historiques en base (lecture seule).
+    
+    Args:
+        index (Optional[int]): Index du contrat dans la base.
+        id_client (Optional[str]): Identifiant du client.
+        id_vehicule (Optional[str]): Identifiant du véhicule.
+        id_contrat (Optional[str]): Identifiant du contrat.
+        bonus (Optional[float]): Bonus-malus du contrat.
+        type_contrat (Optional[str]): Type de contrat souscrit.
+        duree_contrat (Optional[int]): Durée du contrat en mois.
+        anciennete_info (Optional[int]): Ancienneté de l'information sur le contrat.
+        freq_paiement (Optional[str]): Fréquence de paiement.
+        paiement (Optional[str]): Statut du paiement.
+        utilisation (Optional[str]): Type d'utilisation du véhicule.
+        code_postal (Optional[str]): Code postal du souscripteur.
+        conducteur2 (Optional[str]): Présence d'un second conducteur.
+        age_conducteur1 (Optional[int]): Âge du conducteur principal.
+        age_conducteur2 (Optional[int]): Âge du second conducteur.
+        sex_conducteur1 (Optional[str]): Sexe du conducteur principal.
+        sex_conducteur2 (Optional[str]): Sexe du second conducteur.
+        anciennete_permis1 (Optional[int]): Ancienneté du permis du conducteur principal.
+        anciennete_permis2 (Optional[int]): Ancienneté du permis du second conducteur.
+        anciennete_vehicule (Optional[float]): Ancienneté du véhicule.
+        cylindre_vehicule (Optional[int]): Cylindrée du véhicule.
+        din_vehicule (Optional[int]): DIN du véhicule.
+        essence_vehicule (Optional[str]): Type de carburant.
+        marque_vehicule (Optional[str]): Marque du véhicule.
+        modele_vehicule (Optional[str]): Modèle du véhicule.
+        debut_vente_vehicule (Optional[int]): Année de début de commercialisation.
+        fin_vente_vehicule (Optional[int]): Année de fin de commercialisation.
+        vitesse_vehicule (Optional[int]): Vitesse maximale du véhicule.
+        type_vehicule (Optional[str]): Type de véhicule.
+        prix_vehicule (Optional[int]): Prix du véhicule.
+        poids_vehicule (Optional[int]): Poids du véhicule.
+        nombre_sinistres (Optional[int]): Nombre de sinistres déclarés.
+        montant_sinistre (Optional[float]): Montant total des sinistres.
+    Returns:
+        dict: Un dictionnaire représentant le contrat lu depuis la base.
+    """
 
     index: Optional[int] = None
     id_client: Optional[str] = None
