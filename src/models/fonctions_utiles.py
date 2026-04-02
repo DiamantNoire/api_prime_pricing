@@ -58,6 +58,24 @@ except ImportError:
     XGBRegressor = None
 
 
+def _build_xgb_regressor() -> "XGBRegressor":
+    """Build a default XGBRegressor or raise an explicit runtime error."""
+    if XGBRegressor is None:
+        raise RuntimeError(
+            "xgboost n'est pas disponible dans l'environnement courant. "
+            "Installez la dépendance 'xgboost' pour charger les artefacts JSON."
+        )
+    return XGBRegressor(
+        objective="reg:squarederror",
+        n_estimators=300,
+        learning_rate=0.05,
+        max_depth=6,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        random_state=42,
+    )
+
+
 
 # ===================================================
 # 2----- CONFIGURATION DE LA BARRE DE CHARGEMENT ---#
@@ -313,15 +331,24 @@ class Model_Prediction_Frequence(BaseEstimator):
     def __init__(self):
         """Initialize the frequency model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = Pipeline([
-            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
-        ])
+        self.pipeline_ = None
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
         self.selected_features_ = []
         self.fill_values_ = {}
         self.history_ = []
+
+        try:
+            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
+        except Exception as e:
+            self.pipeline_ = None
+            self.history_.append({"step": "init", "warning": str(e)})
+
+    def _ensure_pipeline(self):
+        """Ensure a trainable/predictable pipeline is available."""
+        if self.pipeline_ is None:
+            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
 
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
         """Return a defensive DataFrame copy from input features."""
@@ -340,6 +367,7 @@ class Model_Prediction_Frequence(BaseEstimator):
 
     def tune_XGBRegressor_hyperparameters(self, X, y, param_grid=None):
         """Tune XGBRegressor hyperparameters via cross-validation."""
+        self._ensure_pipeline()
         X = self._ensure_dataframe(X)
         self.selected_features_ = list(X.columns)
         num = X.select_dtypes(include=[np.number])
@@ -379,6 +407,7 @@ class Model_Prediction_Frequence(BaseEstimator):
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """Fit the frequency classification pipeline."""
+        self._ensure_pipeline()
         X = self._prepare_X(X)
         self.pipeline_.fit(X, y)
         self.history_.append({
@@ -456,31 +485,43 @@ class Model_Prediction_Frequence(BaseEstimator):
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
+        suffix = Path(filepath).suffix.lower()
+
         # Preferred format: JSON complete artifact.
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                loaded = json.load(f)
+        if suffix == ".json":
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    loaded = json.load(f)
+            except Exception as e:
+                raise RuntimeError(f"JSON invalide pour l'artefact fréquence: {e}") from e
 
-            if isinstance(loaded, dict):
-                self.model_name_ = loaded.get("model_name_", self.model_name_)
-                self.best_params_ = loaded.get("best_params_", self.best_params_)
-                self.best_score_ = loaded.get("best_score_", self.best_score_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
-                self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
-                self.history_ = loaded.get("history_", self.history_)
+            if not isinstance(loaded, dict):
+                raise RuntimeError("Artefact fréquence JSON invalide: structure non-dictionnaire")
 
-                xgb_model_json = loaded.get("xgb_model_json")
-                if xgb_model_json:
-                    xgb_model = XGBRegressor()
-                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
-                        tmp.write(xgb_model_json)
-                        tmp_path = tmp.name
+            self.model_name_ = loaded.get("model_name_", self.model_name_)
+            self.best_params_ = loaded.get("best_params_", self.best_params_)
+            self.best_score_ = loaded.get("best_score_", self.best_score_)
+            self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+            self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
+            self.history_ = loaded.get("history_", self.history_)
+
+            xgb_model_json = loaded.get("xgb_model_json")
+            if xgb_model_json:
+                try:
+                    xgb_model = _build_xgb_regressor()
+                except Exception as e:
+                    raise RuntimeError(f"Impossible de charger le modèle fréquence: {e}") from e
+
+                with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                    tmp.write(xgb_model_json)
+                    tmp_path = tmp.name
+                try:
                     xgb_model.load_model(tmp_path)
+                finally:
                     os.unlink(tmp_path)
-                    self.pipeline_ = Pipeline([("model", xgb_model)])
-                return loaded
-        except Exception:
-            pass
+                self.pipeline_ = Pipeline([("model", xgb_model)])
+
+            return loaded
 
         # Legacy fallback: pickle artifact.
         try:
@@ -818,15 +859,24 @@ class Model_Prediction_Severite(BaseEstimator):
     def __init__(self):
         """Initialize the severity model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = Pipeline([
-            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
-        ])
+        self.pipeline_ = None
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
         self.selected_features_ = []
         self.fill_values_ = {}
         self.history_ = []
+
+        try:
+            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
+        except Exception as e:
+            self.pipeline_ = None
+            self.history_.append({"step": "init", "warning": str(e)})
+
+    def _ensure_pipeline(self):
+        """Ensure a trainable/predictable pipeline is available."""
+        if self.pipeline_ is None:
+            self.pipeline_ = Pipeline([("model", _build_xgb_regressor())])
 
     def _ensure_dataframe(self, X: pd.DataFrame) -> pd.DataFrame:
         """Return a defensive DataFrame copy from input features."""
@@ -848,6 +898,7 @@ class Model_Prediction_Severite(BaseEstimator):
 
     def tune_GBRegressor_hyperparameters(self, X, y, param_grid=None, cv=5, scoring='neg_mean_squared_error'):
         """Tune GradientBoostingRegressor hyperparameters via cross-validation."""
+        self._ensure_pipeline()
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -898,6 +949,7 @@ class Model_Prediction_Severite(BaseEstimator):
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """Fit the severity regression pipeline."""
+        self._ensure_pipeline()
         X = self._ensure_dataframe(X)
         y = y.copy()
 
@@ -996,30 +1048,57 @@ class Model_Prediction_Severite(BaseEstimator):
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
-        # Preferred format: JSON complete artifact with xgb_model_json.
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                loaded = json.load(f)
+        suffix = Path(filepath).suffix.lower()
 
+        # Preferred format: JSON complete artifact with xgb_model_json.
+        if suffix == ".json":
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    loaded = json.load(f)
+            except Exception as e:
+                raise RuntimeError(f"JSON invalide pour l'artefact sévérité: {e}") from e
+
+            if not isinstance(loaded, dict):
+                raise RuntimeError("Artefact sévérité JSON invalide: structure non-dictionnaire")
+
+            self.model_name_ = loaded.get("model_name_", self.model_name_)
+            self.best_params_ = loaded.get("best_params_", self.best_params_)
+            self.best_score_ = loaded.get("best_score_", self.best_score_)
+            self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+            self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
+            self.history_ = loaded.get("history_", self.history_)
+
+            xgb_model_json = loaded.get("xgb_model_json")
+            if xgb_model_json:
+                try:
+                    xgb_model = _build_xgb_regressor()
+                except Exception as e:
+                    raise RuntimeError(f"Impossible de charger le modèle sévérité: {e}") from e
+
+                with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                    tmp.write(xgb_model_json)
+                    tmp_path = tmp.name
+                try:
+                    xgb_model.load_model(tmp_path)
+                finally:
+                    os.unlink(tmp_path)
+                self.pipeline_ = Pipeline([("model", xgb_model)])
+
+            return loaded
+
+        # Legacy fallback: pickle artifact.
+        try:
+            with open(filepath, 'rb') as f:
+                loaded = pickle.load(f)
             if isinstance(loaded, dict):
-                self.model_name_ = loaded.get("model_name_", self.model_name_)
+                self.pipeline_ = loaded.get("pipeline_", self.pipeline_)
+                self.best_estimator_ = loaded.get("best_estimator_", self.best_estimator_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
                 self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
                 self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
-                self.history_ = loaded.get("history_", self.history_)
-
-                xgb_model_json = loaded.get("xgb_model_json")
-                if xgb_model_json:
-                    xgb_model = XGBRegressor()
-                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
-                        tmp.write(xgb_model_json)
-                        tmp_path = tmp.name
-                    xgb_model.load_model(tmp_path)
-                    os.unlink(tmp_path)
-                    self.pipeline_ = Pipeline([("model", xgb_model)])
-
-            return loaded
+                return loaded
+            return None
         except Exception as e:
             LOGGER.exception("Erreur lors du chargement du modele severite")
             return None

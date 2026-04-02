@@ -307,7 +307,6 @@ exemple d'un single json :
 
 Dans un navigateur
 lancer dans un terminal pour: demarrer l'api
-fuser -k 8000/tcp
 python -m uvicorn src.api.backend.server:app --host 127.0.0.1 --port 8000 --reload
 
 ouverir le navigateur:
@@ -346,3 +345,14 @@ colle ce JSON dans le body :
   "prix_vehicule": 28990,
   "poids_vehicule": 1425
 }
+
+fuser -k 8000/tcp
+
+uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
+
+API:
+.venv/bin/uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
+
+
+streamlit run src/app/app.py
+streamlit run src/app/app.py

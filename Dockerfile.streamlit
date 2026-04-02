@@ -1,0 +1,23 @@
+# ===============================
+# Dockerfile.streamlit : Image pour Streamlit
+# ===============================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Installer uv
+RUN pip install --no-cache-dir uv
+
+# Copier et installer les dépendances
+COPY requirements.txt ./
+RUN uv pip install --system -r requirements.txt
+
+# Copier tout le code source
+COPY . .
+
+# Exposer le port Streamlit (Render injecte PORT dynamiquement)
+EXPOSE 10000
+
+# Commande de lancement (Streamlit) avec port dynamique Render.
+CMD ["sh", "-c", "streamlit run src/app/app.py --server.port=${PORT:-10000} --server.address=0.0.0.0 --server.headless=true"]
