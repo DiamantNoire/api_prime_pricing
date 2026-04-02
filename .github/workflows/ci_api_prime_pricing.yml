@@ -20,7 +20,7 @@ on:
 
 jobs:
   lint-typecheck:
-    name: Linting & Typecheck (ruff, pylint, ty)
+    name: Format/Lint/Typecheck (black, ruff, flake8, pylint, ty)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,7 +29,7 @@ jobs:
         run: pip install uv
       - name: Installer les dépendances (prod + dev)
         run: uv pip install -r requirements.txt
-      - name: Lint & Typecheck (ruff, pylint, ty)
+      - name: Format, Lint & Typecheck
         run: ./lint_and_typecheck.sh
 
   tests:
