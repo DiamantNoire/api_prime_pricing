@@ -1,35 +1,31 @@
-#--*- coding: utf-8 -*-
+# --*- coding: utf-8 -*-
 
 # =============================================
-#------ IMPORTATIONS DES LIBRAIRIES ----------#
+# ------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 import os
 import sys
-import json
 import logging
 import pandas as pd
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import FunctionTransformer
 
 LOGGER = logging.getLogger(__name__)
 
 
 # =============================================
-#------ IMPORTATIONS DES MODULES -------------#
+# ------ IMPORTATIONS DES MODULES -------------#
 # =============================================
-import sys
+
 CURRENT_DIR = os.path.dirname(__file__)
 if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
 from fonctions_utiles import (
     run_step,
-    run_internal_step,
     _generer_csv_pred_severite,
     Severite_Preprocessing,
     Severite_Feature_Engineer,
-    Model_Prediction_Severite
+    Model_Prediction_Severite,
 )
 
 # Les fonctions utilitaires importées sont documentées dans leur module d'origine.
@@ -50,33 +46,49 @@ Script principal pour l'entraînement du modèle de prédiction de la sévérit�
 
 Ce script ne définit pas de fonctions ou classes supplémentaires, mais orchestre l'ensemble du pipeline via les fonctions importées.
 """
-                            
+
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
     LOGGER.info("Demarrage entrainement modele severite")
 
     # =============================================
-    #-------- CHARGEMENT DES DONNEES -------------#
+    # -------- CHARGEMENT DES DONNEES -------------#
     # =============================================
     # --- Chemin ---
     DATA_DIR = os.path.dirname(__file__)
-    PROJECT_ROOT = os.path.abspath(os.path.join(DATA_DIR, '..', '..'))
+    PROJECT_ROOT = os.path.abspath(os.path.join(DATA_DIR, "..", ".."))
 
     # --- Input ---
-    TRAIN_PATH = os.path.join(PROJECT_ROOT, 'asset', 'train.csv')
-    TEST_PATH = os.path.join(PROJECT_ROOT, 'asset', 'test.csv')
+    TRAIN_PATH = os.path.join(PROJECT_ROOT, "asset", "train.csv")
+    TEST_PATH = os.path.join(PROJECT_ROOT, "asset", "test.csv")
 
     # --- Output ---
-    OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/feature_engineering/features_severite.pickle')
-    OUTPUT_MODEL_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/modeles/model_severite.pickle')
-    OUTPUT_TEST_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/predictions/test_predictions_severite.csv')
-    OUTPUT_METRICS_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/metrics/metrics_severite.json')
-    OUTPUT_PIPELINE_SEVERITE_ARTIFACT_PATH = os.path.join(DATA_DIR, 'output/pipeline/pipeline_severite.pickle')
-    OUTPUT_PIPELINE_SEVERITE_JSON_PATH = os.path.join(PROJECT_ROOT, 'output_models', 'modeles', 'model_severite.json')
+    OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH = os.path.join(
+        DATA_DIR, "output/feature_engineering/features_severite.pickle"
+    )
+    OUTPUT_MODEL_SEVERITE_PATH = os.path.join(
+        DATA_DIR, "output/modeles/model_severite.pickle"
+    )
+    OUTPUT_TEST_SEVERITE_PATH = os.path.join(
+        DATA_DIR, "output/predictions/test_predictions_severite.csv"
+    )
+    OUTPUT_METRICS_SEVERITE_PATH = os.path.join(
+        DATA_DIR, "output/metrics/metrics_severite.json"
+    )
+    OUTPUT_PIPELINE_SEVERITE_ARTIFACT_PATH = os.path.join(
+        DATA_DIR, "output/pipeline/pipeline_severite.pickle"
+    )
+    OUTPUT_PIPELINE_SEVERITE_JSON_PATH = os.path.join(
+        PROJECT_ROOT, "output_models", "modeles", "model_severite.json"
+    )
     OUTPUT_COMPLETE_ARTIFACT_SEVERITE_PATH = OUTPUT_PIPELINE_SEVERITE_JSON_PATH
-    OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH = os.path.join(DATA_DIR, 'output/artifacts/synthetic_artifact_severite.json')
-    
-    os.makedirs(os.path.dirname(OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH), exist_ok=True)
+    OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH = os.path.join(
+        DATA_DIR, "output/artifacts/synthetic_artifact_severite.json"
+    )
+
+    os.makedirs(
+        os.path.dirname(OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH), exist_ok=True
+    )
     os.makedirs(os.path.dirname(OUTPUT_MODEL_SEVERITE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_TEST_SEVERITE_PATH), exist_ok=True)
     os.makedirs(os.path.dirname(OUTPUT_METRICS_SEVERITE_PATH), exist_ok=True)
@@ -86,64 +98,63 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH), exist_ok=True)
 
     # --- Chargement| copie avant traitement ---
-    df_train = run_step('Chargement train.csv', pd.read_csv, TRAIN_PATH)
-    df_test = run_step('Chargement test.csv', pd.read_csv, TEST_PATH)
+    df_train = run_step("Chargement train.csv", pd.read_csv, TRAIN_PATH)
+    df_test = run_step("Chargement test.csv", pd.read_csv, TEST_PATH)
 
-    df_train_severite = run_step('Copie de df_train', lambda df: df.copy(), df_train)
-    df_test_severite = run_step('Copie de df_test', lambda df: df.copy(), df_test)
-
+    df_train_severite = run_step("Copie de df_train", lambda df: df.copy(), df_train)
+    df_test_severite = run_step("Copie de df_test", lambda df: df.copy(), df_test)
 
     # =======================================================
-    #--------------------- PIPELINE SEVERITE ---------------#
+    # --------------------- PIPELINE SEVERITE ---------------#
     # =======================================================
 
     # =============================================
-    #------------- PREPROCESSING -----------------#
+    # ------------- PREPROCESSING -----------------#
     # =============================================
-    target_col_severite = 'montant_sinistre'
+    target_col_severite = "montant_sinistre"
     pre_process = Severite_Preprocessing()
 
     df_train_severite = run_step(
-        'Remove id columns train',
+        "Remove id columns train",
         pre_process._transform_remove_id_columns,
-        'severite_train',
-        df_train_severite
+        "severite_train",
+        df_train_severite,
     )
 
     df_train_severite = run_step(
-        'Remove zero target train',
+        "Remove zero target train",
         pre_process._transform_remove_null_target,
-        df_train_severite
+        df_train_severite,
     )
 
     df_test_severite = run_step(
-        'Remove id columns test',
+        "Remove id columns test",
         pre_process._transform_remove_id_columns,
-        'severite_test',
-        df_test_severite
+        "severite_test",
+        df_test_severite,
     )
 
     # =============================================
-    #----------- TRAIN / VALID SPLIT -------------#
+    # ----------- TRAIN / VALID SPLIT -------------#
     # =============================================
     X_train_severite, X_valid_severite, y_train_severite, y_valid_severite = run_step(
-        'Train/Validation split',
+        "Train/Validation split",
         train_test_split,
         df_train_severite.drop(columns=[target_col_severite]),
         df_train_severite[target_col_severite],
         test_size=0.2,
         random_state=42,
-        shuffle=True
+        shuffle=True,
     )
 
-    # --- Traitement sur les copies --- 
+    # --- Traitement sur les copies ---
     X_train_copie_severite = X_train_severite.copy()
     X_valid_copie_severite = X_valid_severite.copy()
     y_train_copie_severite = y_train_severite.copy()
     y_valid_copie_severite = y_valid_severite.copy()
 
     # =============================================
-    #--------- FEATURE ENGINEERING ---------------#
+    # --------- FEATURE ENGINEERING ---------------#
     # =============================================
     fe_severite = Severite_Feature_Engineer(
         severite_process=pre_process
@@ -156,126 +167,118 @@ if __name__ == "__main__":
         threshold=0.9,
         preprocessing_map={},
         select_numeric_features_only=True,
-        excluded_feature_columns=["nombre_sinistres"]
+        excluded_feature_columns=["nombre_sinistres"],
     )
 
     X_train_copie_severite = run_step(
-        'Feature engineering fit_transform train severite',
+        "Feature engineering fit_transform train severite",
         fe_severite.fit_transform,
         X_train_copie_severite,
-        y_train_copie_severite
+        y_train_copie_severite,
     )
 
     X_valid_copie_severite = run_step(
-        'Feature engineering transform valid severite',
+        "Feature engineering transform valid severite",
         fe_severite.transform,
-        X_valid_copie_severite
+        X_valid_copie_severite,
     )
 
     df_test_severite = run_step(
-        'Feature engineering transform test severite',
+        "Feature engineering transform test severite",
         fe_severite.transform,
-        df_test_severite
+        df_test_severite,
     )
 
-
     # =============================================
-    #----------------- MODELE --------------------#
+    # ----------------- MODELE --------------------#
     # =============================================
     model_severite = Model_Prediction_Severite()
 
     tuning_results = run_step(
-        'Tune XGBRegressor',
+        "Tune XGBRegressor",
         model_severite.tune_GBRegressor_hyperparameters,
         X_train_copie_severite,
-        y_train_copie_severite
+        y_train_copie_severite,
     )
 
     model_severite = run_step(
-        'Fit modele severite',
+        "Fit modele severite",
         model_severite.fit,
         X_train_copie_severite,
-        y_train_copie_severite
+        y_train_copie_severite,
     )
 
     y_pred_train_severite = run_step(
-        'Predict train severite',
-        model_severite.predict,
-        X_train_copie_severite
+        "Predict train severite", model_severite.predict, X_train_copie_severite
     )
 
     y_pred_valid_severite = run_step(
-        'Predict valid severite',
-        model_severite.predict,
-        X_valid_copie_severite
+        "Predict valid severite", model_severite.predict, X_valid_copie_severite
     )
 
     y_pred_test_severite = run_step(
-        'Predict test severite',
-        model_severite.predict,
-        df_test_severite
+        "Predict test severite", model_severite.predict, df_test_severite
     )
 
     metrics = run_step(
-        'Metrics severite',
+        "Metrics severite",
         model_severite.metrics,
         y_train_copie_severite,
         y_pred_train_severite,
         y_valid_copie_severite,
-        y_pred_valid_severite
+        y_pred_valid_severite,
     )
 
     metrics_all = {
-        "train": metrics['train'],
-        "valid": metrics['valid'],
+        "train": metrics["train"],
+        "valid": metrics["valid"],
         "tuning": {
             "best_params": tuning_results.get("best_params"),
-            "best_score": tuning_results.get("best_score")
-        }
+            "best_score": tuning_results.get("best_score"),
+        },
     }
 
     stats_test_severite = run_step(
-        'Stats predictions test severite',
+        "Stats predictions test severite",
         model_severite.test_prediction_stats,
         y_pred_test_severite,
-        OUTPUT_METRICS_SEVERITE_PATH
+        OUTPUT_METRICS_SEVERITE_PATH,
     )
 
     # Export prédictions test
-    _generer_csv_pred_severite(df=df_test,
-                               y_pred=y_pred_test_severite,
-                               path=OUTPUT_TEST_SEVERITE_PATH)
+    _generer_csv_pred_severite(
+        df=df_test, y_pred=y_pred_test_severite, path=OUTPUT_TEST_SEVERITE_PATH
+    )
 
-    # --- SAUVEGARDES --- 
+    # --- SAUVEGARDES ---
     run_step(
-        'Save feature engineer severite',
+        "Save feature engineer severite",
         fe_severite.save_feature_engineer,
         fe_severite,
-        OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH
+        OUTPUT_FEATURE_ENGINEERING_SEVERITE_PATH,
     )
 
     run_step(
-        'Save modele severite',
+        "Save modele severite",
         model_severite.save_model,
         model_severite,
         OUTPUT_MODEL_SEVERITE_PATH,
-        {"metrics": metrics_all}
+        {"metrics": metrics_all},
     )
 
     run_step(
-        'Save complete severite artifact',
+        "Save complete severite artifact",
         model_severite.save_complete_artifact,
         OUTPUT_COMPLETE_ARTIFACT_SEVERITE_PATH,
         fe_severite,
-        {"metrics": metrics_all}
+        {"metrics": metrics_all},
     )
 
     run_step(
-        'Save synthetic severite artifact',
+        "Save synthetic severite artifact",
         model_severite.save_synthetic_artifact,
         OUTPUT_SYNTHETIC_ARTIFACT_SEVERITE_PATH,
-        {"metrics": metrics_all}
+        {"metrics": metrics_all},
     )
 
     LOGGER.info("Fin entrainement modele severite")
-

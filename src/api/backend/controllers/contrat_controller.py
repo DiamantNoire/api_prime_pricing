@@ -35,7 +35,9 @@ def get_contrat(id_contrat: str):
     try:
         row = contrat_service.get_by_id_contrat(id_contrat)
         if row is None:
-            raise HTTPException(status_code=404, detail=f"Contrat '{id_contrat}' introuvable")
+            raise HTTPException(
+                status_code=404, detail=f"Contrat '{id_contrat}' introuvable"
+            )
         return ContratReadDTO(**row)
     except HTTPException:
         raise
@@ -69,6 +71,6 @@ def update_contrat(id_contrat: str, payload: ContratUpdateDTO):
         raise HTTPException(status_code=409, detail=str(exc))
     except Exception as exc:
         logger.exception("Erreur mise à jour contrat")
-        raise HTTPException(status_code=500, detail=f"Erreur mise à jour contrat: {exc}")
-
-
+        raise HTTPException(
+            status_code=500, detail=f"Erreur mise à jour contrat: {exc}"
+        )

@@ -9,9 +9,7 @@ import streamlit as st
 try:
     import streamlit_antd_components as sac
 except ImportError as exc:
-    raise RuntimeError(
-        "Le paquet 'streamlit-antd-components' est requis."
-    ) from exc
+    raise RuntimeError("Le paquet 'streamlit-antd-components' est requis.") from exc
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +21,7 @@ def info_box(
     icon: str = "info",
 ) -> None:
     """Affiche une boîte d'information.
-    
+
     Args:
         label: Libellé de l'info
         value: Valeur à afficher
@@ -43,7 +41,7 @@ def info_box(
 
 def success_message(title: str, description: str | None = None) -> None:
     """Affiche un message de succès.
-    
+
     Args:
         title: Titre du message
         description: Description optionnelle
@@ -61,7 +59,7 @@ def success_message(title: str, description: str | None = None) -> None:
 
 def error_message(title: str, description: str | None = None) -> None:
     """Affiche un message d'erreur.
-    
+
     Args:
         title: Titre du message
         description: Description optionnelle
@@ -79,7 +77,7 @@ def error_message(title: str, description: str | None = None) -> None:
 
 def warning_message(title: str, description: str | None = None) -> None:
     """Affiche un message d'avertissement.
-    
+
     Args:
         title: Titre du message
         description: Description optionnelle

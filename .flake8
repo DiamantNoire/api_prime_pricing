@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist
+
+[flake8:local-plugin-paths]
+per-file-ignores =
+    src/tests/**:E402,F401

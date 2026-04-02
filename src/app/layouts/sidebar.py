@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def sidebar_menu() -> str | None:
     """Affiche le menu de navigation dans la sidebar.
-    
+
     Returns:
         La clé de la page sélectionnée ou None
     """

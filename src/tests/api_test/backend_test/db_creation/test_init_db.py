@@ -1,7 +1,6 @@
 import runpy
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -46,9 +45,9 @@ def test_fill_predictions_calls_create_table_predictions(monkeypatch):
 
 
 def test_run_api_calls_uvicorn_run(monkeypatch):
+    """Test que run_api() appelle uvicorn.run avec les bons paramètres."""
     fake_run = MagicMock()
-    fake_uvicorn = SimpleNamespace(run=fake_run)
-    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setattr("uvicorn.run", fake_run)
 
     init_db_module.run_api()
 

@@ -7,6 +7,7 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 LOG_FILE = os.getenv("API_LOG_FILE", None)
 LOG_DB_PATH = os.getenv("API_LOG_DB_PATH", "db/prime_pricing.sqlite")
 
+
 def get_logger(name: str) -> logging.Logger:
     """
     Retourne un logger configuré pour l'API backend.

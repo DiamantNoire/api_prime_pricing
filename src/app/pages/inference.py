@@ -13,9 +13,7 @@ import streamlit as st
 try:
     import streamlit_antd_components as sac
 except ImportError as exc:
-    raise RuntimeError(
-        "Le paquet 'streamlit-antd-components' est requis."
-    ) from exc
+    raise RuntimeError("Le paquet 'streamlit-antd-components' est requis.") from exc
 
 SRC_DIR = Path(__file__).resolve().parents[2]
 if str(SRC_DIR) not in sys.path:
@@ -30,6 +28,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _random_code_postal() -> str:
     return f"{random.randint(1, 95):05d}"
@@ -50,9 +49,15 @@ def _generate_auto_fields() -> dict:
         "auto_utilisation": random.choice(opts["utilisation"]),
         "auto_code_postal": _random_code_postal(),
         "auto_conducteur2": conducteur2,
-        "auto_age_conducteur2": random.randint(*r["age_conducteur2"]) if conducteur2 == "Yes" else 0,
-        "auto_sex_conducteur2": random.choice(opts["sex_conducteur2"]) if conducteur2 == "Yes" else "",
-        "auto_anciennete_permis2": random.randint(*r["anciennete_permis2"]) if conducteur2 == "Yes" else 0,
+        "auto_age_conducteur2": (
+            random.randint(*r["age_conducteur2"]) if conducteur2 == "Yes" else 0
+        ),
+        "auto_sex_conducteur2": (
+            random.choice(opts["sex_conducteur2"]) if conducteur2 == "Yes" else ""
+        ),
+        "auto_anciennete_permis2": (
+            random.randint(*r["anciennete_permis2"]) if conducteur2 == "Yes" else 0
+        ),
         "auto_anciennete_vehicule": round(random.uniform(*r["anciennete_vehicule"]), 1),
         "auto_din_vehicule": random.randint(*r["din_vehicule"]),
         "auto_marque_vehicule": random.choice(opts["marque_vehicule"]),
@@ -101,6 +106,7 @@ def _build_payload(manual: dict, auto: dict) -> dict:
 # Render
 # ---------------------------------------------------------------------------
 
+
 def render() -> None:
     """Affiche la page compose inference."""
     try:
@@ -121,7 +127,11 @@ def render() -> None:
             st.subheader("Mode")
             mode = st.radio(
                 "Sélectionne le mode",
-                options=["Unitaire", "Batch"] if FEATURES["enable_batch_prediction"] else ["Unitaire"],
+                options=(
+                    ["Unitaire", "Batch"]
+                    if FEATURES["enable_batch_prediction"]
+                    else ["Unitaire"]
+                ),
                 label_visibility="collapsed",
             )
 
@@ -134,38 +144,68 @@ def render() -> None:
         c1, c2, c3 = st.columns(3)
         with c1:
             age_cond1 = st.number_input(
-                "Âge conducteur 1", min_value=18, max_value=100, value=35, key="age_conducteur1"
+                "Âge conducteur 1",
+                min_value=18,
+                max_value=100,
+                value=35,
+                key="age_conducteur1",
             )
             anc_permis1 = st.number_input(
-                "Ancienneté permis (ans)", min_value=0, max_value=70, value=10, key="anciennete_permis1"
+                "Ancienneté permis (ans)",
+                min_value=0,
+                max_value=70,
+                value=10,
+                key="anciennete_permis1",
             )
             sex_cond1 = st.selectbox(
-                "Sexe conducteur 1", options=FIELD_OPTIONS["sex_conducteur1"], key="sex_conducteur1"
+                "Sexe conducteur 1",
+                options=FIELD_OPTIONS["sex_conducteur1"],
+                key="sex_conducteur1",
             )
         with c2:
             essence = st.selectbox(
-                "Carburant", options=FIELD_OPTIONS["essence_vehicule"], key="essence_vehicule"
+                "Carburant",
+                options=FIELD_OPTIONS["essence_vehicule"],
+                key="essence_vehicule",
             )
             type_veh = st.selectbox(
-                "Type véhicule", options=FIELD_OPTIONS["type_vehicule"], key="type_vehicule"
+                "Type véhicule",
+                options=FIELD_OPTIONS["type_vehicule"],
+                key="type_vehicule",
             )
         with c3:
             cylindre = st.number_input(
-                "Cylindrée (cc)", min_value=500, max_value=8000, value=1600, step=100, key="cylindre_vehicule"
+                "Cylindrée (cc)",
+                min_value=500,
+                max_value=8000,
+                value=1600,
+                step=100,
+                key="cylindre_vehicule",
             )
             prix_veh = st.number_input(
-                "Prix véhicule (€)", min_value=0, max_value=500_000, value=20_000, step=500, key="prix_vehicule"
+                "Prix véhicule (€)",
+                min_value=0,
+                max_value=500_000,
+                value=20_000,
+                step=500,
+                key="prix_vehicule",
             )
 
         st.divider()
 
         # ── Remplissage automatique ────────────────────────────────────────
-        section_divider("Données complémentaires (auto-générées)", icon="lightning-fill")
-        st.caption("Ces champs sont générés aléatoirement à partir des distributions du jeu d'entraînement.")
+        section_divider(
+            "Données complémentaires (auto-générées)", icon="lightning-fill"
+        )
+        st.caption(
+            "Ces champs sont générés aléatoirement à partir des distributions du jeu d'entraînement."
+        )
 
         col_btn, _ = st.columns([1, 3])
         with col_btn:
-            if st.button("🔄 Remplissage auto", use_container_width=True, type="primary"):
+            if st.button(
+                "🔄 Remplissage auto", use_container_width=True, type="primary"
+            ):
                 for k, v in _generate_auto_fields().items():
                     st.session_state[k] = v
                 st.toast("Champs complémentaires générés !", icon="✅")
@@ -175,14 +215,18 @@ def render() -> None:
             for k, v in _generate_auto_fields().items():
                 st.session_state[k] = v
 
-        auto = {k: st.session_state[k] for k in st.session_state if k.startswith("auto_")}
+        auto = {
+            k: st.session_state[k] for k in st.session_state if k.startswith("auto_")
+        }
 
         with st.expander("Voir les champs générés", expanded=False):
             ac1, ac2, ac3, ac4 = st.columns(4)
             with ac1:
                 st.metric("Bonus", auto.get("auto_bonus", "–"))
                 st.metric("Type contrat", auto.get("auto_type_contrat", "–"))
-                st.metric("Durée contrat", f"{auto.get('auto_duree_contrat', '–')} mois")
+                st.metric(
+                    "Durée contrat", f"{auto.get('auto_duree_contrat', '–')} mois"
+                )
                 st.metric("Utilisation", auto.get("auto_utilisation", "–"))
             with ac2:
                 st.metric("Fréq. paiement", auto.get("auto_freq_paiement", "–"))
@@ -195,9 +239,13 @@ def render() -> None:
                 st.metric("Anc. permis 2", auto.get("auto_anciennete_permis2", "–"))
                 st.metric("Marque", auto.get("auto_marque_vehicule", "–"))
             with ac4:
-                st.metric("Anc. véhicule", f"{auto.get('auto_anciennete_vehicule', '–')} ans")
+                st.metric(
+                    "Anc. véhicule", f"{auto.get('auto_anciennete_vehicule', '–')} ans"
+                )
                 st.metric("DIN (ch)", auto.get("auto_din_vehicule", "–"))
-                st.metric("Vitesse max", f"{auto.get('auto_vitesse_vehicule', '–')} km/h")
+                st.metric(
+                    "Vitesse max", f"{auto.get('auto_vitesse_vehicule', '–')} km/h"
+                )
                 st.metric("Poids", f"{auto.get('auto_poids_vehicule', '–')} kg")
 
         st.divider()
@@ -223,22 +271,30 @@ def render() -> None:
                 with st.spinner("Appel API en cours..."):
                     if pred_type in ("Fréquence", "Combinée"):
                         resp = requests.post(
-                            ENDPOINTS["predict_frequence"], json=payload, timeout=API_TIMEOUT
+                            ENDPOINTS["predict_frequence"],
+                            json=payload,
+                            timeout=API_TIMEOUT,
                         )
                         resp.raise_for_status()
                         results["frequence"] = resp.json()
                     if pred_type in ("Sévérité", "Combinée"):
                         resp = requests.post(
-                            ENDPOINTS["predict_severite"], json=payload, timeout=API_TIMEOUT
+                            ENDPOINTS["predict_severite"],
+                            json=payload,
+                            timeout=API_TIMEOUT,
                         )
                         resp.raise_for_status()
                         results["severite"] = resp.json()
             except requests.exceptions.ConnectionError:
-                st.error("❌ Impossible de joindre l'API. Vérifie que le serveur est démarré.")
+                st.error(
+                    "❌ Impossible de joindre l'API. Vérifie que le serveur est démarré."
+                )
                 logger.exception("Connexion API échouée")
                 error_occurred = True
             except requests.exceptions.HTTPError as exc:
-                st.error(f"❌ Erreur API : {exc.response.status_code} — {exc.response.text}")
+                st.error(
+                    f"❌ Erreur API : {exc.response.status_code} — {exc.response.text}"
+                )
                 logger.exception("Erreur HTTP API")
                 error_occurred = True
             except Exception:
@@ -258,7 +314,11 @@ def render() -> None:
                         st.success("✅ Fréquence prédite")
                         st.metric(
                             "Fréquence sinistres",
-                            f"{freq_val_num:.4f}" if isinstance(freq_val_num, float) else str(freq_val_num),
+                            (
+                                f"{freq_val_num:.4f}"
+                                if isinstance(freq_val_num, float)
+                                else str(freq_val_num)
+                            ),
                         )
 
                 if "severite" in results:
@@ -268,10 +328,16 @@ def render() -> None:
                         st.success("✅ Sévérité prédite")
                         st.metric(
                             "Sévérité (€)",
-                            f"{sev_val_num:.2f}" if isinstance(sev_val_num, float) else str(sev_val_num),
+                            (
+                                f"{sev_val_num:.2f}"
+                                if isinstance(sev_val_num, float)
+                                else str(sev_val_num)
+                            ),
                         )
 
-                if isinstance(freq_val_num, (int, float)) and isinstance(sev_val_num, (int, float)):
+                if isinstance(freq_val_num, (int, float)) and isinstance(
+                    sev_val_num, (int, float)
+                ):
                     prime = freq_val_num * sev_val_num
                     st.divider()
                     st.metric("💰 Prime estimée (€)", f"{prime:.2f}")
@@ -280,9 +346,13 @@ def render() -> None:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.caption(f"API Endpoint F: {ENDPOINTS['predict_frequence'].rsplit('/', 1)[0]}/docs")
+            st.caption(
+                f"API Endpoint F: {ENDPOINTS['predict_frequence'].rsplit('/', 1)[0]}/docs"
+            )
         with col2:
-            st.caption(f"API Endpoint S: {ENDPOINTS['predict_severite'].rsplit('/', 1)[0]}/docs")
+            st.caption(
+                f"API Endpoint S: {ENDPOINTS['predict_severite'].rsplit('/', 1)[0]}/docs"
+            )
 
     except Exception:
         logger.exception("Echec du rendu de la page inference")

@@ -9,16 +9,14 @@ import streamlit as st
 try:
     import streamlit_antd_components as sac
 except ImportError as exc:
-    raise RuntimeError(
-        "Le paquet 'streamlit-antd-components' est requis."
-    ) from exc
+    raise RuntimeError("Le paquet 'streamlit-antd-components' est requis.") from exc
 
 logger = logging.getLogger(__name__)
 
 
 def section_divider(title: str, icon: str | None = None) -> None:
     """Affiche un séparateur de section.
-    
+
     Args:
         title: Titre de la section
         icon: Icône optionnelle

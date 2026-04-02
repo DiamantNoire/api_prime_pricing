@@ -60,7 +60,9 @@ def valid_payload():
     }
 
 
-def test_normalize_payload_resets_second_driver_fields_when_no_second_driver(valid_payload):
+def test_normalize_payload_resets_second_driver_fields_when_no_second_driver(
+    valid_payload,
+):
     normalized = ContratService._normalize_payload(valid_payload)
 
     assert normalized["age_conducteur2"] == 0
@@ -100,7 +102,9 @@ def test_create_inserts_normalized_payload(service, repository_mock, valid_paylo
     assert inserted_payload["anciennete_permis2"] == 0
 
 
-def test_create_raises_when_contract_already_exists(service, repository_mock, valid_payload):
+def test_create_raises_when_contract_already_exists(
+    service, repository_mock, valid_payload
+):
     dto = ContratCreateDTO(**valid_payload)
     repository_mock.find_by_id_contrat.return_value = {"id_contrat": "C1"}
 
@@ -125,7 +129,10 @@ def test_update_raises_when_contract_not_found(service, repository_mock, valid_p
 def test_update_returns_updated_contract(service, repository_mock, valid_payload):
     dto = ContratUpdateDTO(**valid_payload)
     repository_mock.find_by_id_contrat.return_value = {"id_contrat": "C1"}
-    repository_mock.update_by_id_contrat.return_value = {"id_contrat": "C1", "bonus": 0.5}
+    repository_mock.update_by_id_contrat.return_value = {
+        "id_contrat": "C1",
+        "bonus": 0.5,
+    }
 
     result = service.update("C1", dto)
 
@@ -137,7 +144,9 @@ def test_update_returns_updated_contract(service, repository_mock, valid_payload
     assert called_payload["age_conducteur2"] == 0
 
 
-def test_update_raises_when_repository_returns_none(service, repository_mock, valid_payload):
+def test_update_raises_when_repository_returns_none(
+    service, repository_mock, valid_payload
+):
     dto = ContratUpdateDTO(**valid_payload)
     repository_mock.find_by_id_contrat.return_value = {"id_contrat": "C1"}
     repository_mock.update_by_id_contrat.return_value = None

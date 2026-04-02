@@ -58,19 +58,25 @@ def test_build_frequence_model_success(monkeypatch):
     mock_model = MagicMock()
     mock_model.load_model.return_value = {"xgb_model_json": "ok"}
 
-    monkeypatch.setattr(controller_frequence, "Model_Prediction_Frequence", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_frequence, "Model_Prediction_Frequence", lambda: mock_model
+    )
     monkeypatch.setattr(controller_frequence.os.path, "exists", lambda _: True)
 
     result = controller_frequence._build_frequence_model()
 
     assert result is mock_model
-    mock_model.load_model.assert_called_once_with(controller_frequence.MODEL_FREQUENCE_PATH)
+    mock_model.load_model.assert_called_once_with(
+        controller_frequence.MODEL_FREQUENCE_PATH
+    )
 
 
 def test_build_frequence_model_missing_file(monkeypatch):
     mock_model = MagicMock()
 
-    monkeypatch.setattr(controller_frequence, "Model_Prediction_Frequence", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_frequence, "Model_Prediction_Frequence", lambda: mock_model
+    )
     monkeypatch.setattr(controller_frequence.os.path, "exists", lambda _: False)
 
     with pytest.raises(controller_frequence.HTTPException) as exc_info:
@@ -84,7 +90,9 @@ def test_build_frequence_model_invalid_artifact(monkeypatch):
     mock_model = MagicMock()
     mock_model.load_model.return_value = {}
 
-    monkeypatch.setattr(controller_frequence, "Model_Prediction_Frequence", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_frequence, "Model_Prediction_Frequence", lambda: mock_model
+    )
     monkeypatch.setattr(controller_frequence.os.path, "exists", lambda _: True)
 
     with pytest.raises(controller_frequence.HTTPException) as exc_info:
@@ -109,7 +117,9 @@ def test_health_predictio_frequence_ok(client, monkeypatch):
 
 def test_health_predictio_frequence_error(client, monkeypatch):
     monkeypatch.setattr(controller_frequence, "FREQUENCE_MODEL", None)
-    monkeypatch.setattr(controller_frequence, "FREQUENCE_MODEL_LOAD_ERROR", "modèle absent")
+    monkeypatch.setattr(
+        controller_frequence, "FREQUENCE_MODEL_LOAD_ERROR", "modèle absent"
+    )
     monkeypatch.setattr(controller_frequence.os.path, "exists", lambda _: False)
 
     response = client.get("/predictio_frequence/health")
@@ -139,7 +149,9 @@ def test_prediction_success(client, valid_payload, monkeypatch):
 
 def test_prediction_model_unavailable(client, valid_payload, monkeypatch):
     monkeypatch.setattr(controller_frequence, "FREQUENCE_MODEL", None)
-    monkeypatch.setattr(controller_frequence, "FREQUENCE_MODEL_LOAD_ERROR", "chargement impossible")
+    monkeypatch.setattr(
+        controller_frequence, "FREQUENCE_MODEL_LOAD_ERROR", "chargement impossible"
+    )
 
     response = client.post("/predict_frequence", json=valid_payload)
 

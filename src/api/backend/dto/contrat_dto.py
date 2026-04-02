@@ -104,7 +104,7 @@ class ContratBaseDTO(BaseModel):
 class ContratCreateDTO(ContratBaseDTO):
     """
     DTO utilisé à la création d'un contrat (POST).
-    
+
     Returns:
         dict: Un dictionnaire représentant le contrat créé.
     """
@@ -113,7 +113,7 @@ class ContratCreateDTO(ContratBaseDTO):
 class ContratUpdateDTO(ContratBaseDTO):
     """
     DTO utilisé à la mise à jour complète d'un contrat (PUT).
-    
+
     Returns:
         dict: Un dictionnaire représentant le contrat mis à jour.
     """
@@ -122,7 +122,7 @@ class ContratUpdateDTO(ContratBaseDTO):
 class ContratResponseDTO(ContratBaseDTO):
     """
     DTO de réponse API pour un contrat (GET).
-    
+
     Args:
         index (Optional[int]): Index du contrat dans la base.
     Returns:
@@ -135,7 +135,7 @@ class ContratResponseDTO(ContratBaseDTO):
 class ContratReadDTO(BaseModel):
     """
     DTO de lecture tolérant pour les données historiques en base (lecture seule).
-    
+
     Args:
         index (Optional[int]): Index du contrat dans la base.
         id_client (Optional[str]): Identifiant du client.

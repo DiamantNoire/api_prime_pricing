@@ -1,6 +1,6 @@
 # --*- coding: utf-8 -*-
 # =============================================
-#------ IMPORTATIONS DES LIBRAIRIES ----------#
+# ------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 import os
 import pandas as pd
@@ -10,13 +10,14 @@ from pydantic import BaseModel
 from src.api.frontend.configs import SCHEMA_TEST_CONTRATS
 from src.models.fonctions_utiles import Model_Prediction_Frequence
 
+
 # =============================================
-#------ CLASSES ----------#
+# ------ CLASSES ----------#
 # =============================================
 class FrequenceInput(BaseModel):
     """
     Modèle d'entrée pour la prédiction de la fréquence d'un contrat d'assurance auto.
-    
+
     Args:
         bonus (Optional[float]): Bonus-malus du contrat.
         type_contrat (Optional[str]): Type de contrat souscrit.
@@ -46,61 +47,68 @@ class FrequenceInput(BaseModel):
         prix_vehicule (Optional[int]): Prix du véhicule.
         poids_vehicule (Optional[int]): Poids du véhicule.
     """
-    bonus:                  Optional[float] = None
-    type_contrat:           Optional[str]   = None
-    duree_contrat:          Optional[int]   = None
-    anciennete_info:        Optional[int]   = None
-    freq_paiement:          Optional[str]   = None
-    paiement:               Optional[str]   = None
-    utilisation:            Optional[str]   = None
-    code_postal:            Optional[str]   = None
-    conducteur2:            Optional[str]   = None
-    age_conducteur1:        Optional[int]   = None
-    age_conducteur2:        Optional[int]   = None
-    sex_conducteur1:        Optional[str]   = None
-    sex_conducteur2:        Optional[str]   = None
-    anciennete_permis1:     Optional[int]   = None
-    anciennete_permis2:     Optional[int]   = None
-    anciennete_vehicule:    Optional[float] = None
-    cylindre_vehicule:      Optional[int]   = None
-    din_vehicule:           Optional[int]   = None
-    essence_vehicule:       Optional[str]   = None
-    marque_vehicule:        Optional[str]   = None
-    modele_vehicule:        Optional[str]   = None
-    debut_vente_vehicule:   Optional[int]   = None
-    fin_vente_vehicule:     Optional[int]   = None
-    vitesse_vehicule:       Optional[int]   = None
-    type_vehicule:          Optional[str]   = None
-    prix_vehicule:          Optional[int]   = None
-    poids_vehicule:         Optional[int]   = None
+
+    bonus: Optional[float] = None
+    type_contrat: Optional[str] = None
+    duree_contrat: Optional[int] = None
+    anciennete_info: Optional[int] = None
+    freq_paiement: Optional[str] = None
+    paiement: Optional[str] = None
+    utilisation: Optional[str] = None
+    code_postal: Optional[str] = None
+    conducteur2: Optional[str] = None
+    age_conducteur1: Optional[int] = None
+    age_conducteur2: Optional[int] = None
+    sex_conducteur1: Optional[str] = None
+    sex_conducteur2: Optional[str] = None
+    anciennete_permis1: Optional[int] = None
+    anciennete_permis2: Optional[int] = None
+    anciennete_vehicule: Optional[float] = None
+    cylindre_vehicule: Optional[int] = None
+    din_vehicule: Optional[int] = None
+    essence_vehicule: Optional[str] = None
+    marque_vehicule: Optional[str] = None
+    modele_vehicule: Optional[str] = None
+    debut_vente_vehicule: Optional[int] = None
+    fin_vente_vehicule: Optional[int] = None
+    vitesse_vehicule: Optional[int] = None
+    type_vehicule: Optional[str] = None
+    prix_vehicule: Optional[int] = None
+    poids_vehicule: Optional[int] = None
 
     __schema__ = SCHEMA_TEST_CONTRATS
+
 
 class FrequenceOutput(BaseModel):
     """
     Modèle de sortie pour la prédiction de la fréquence.
-    
+
     Args:
         prediction (Optional[float]): Valeur prédite de la fréquence d'accident.
-    
+
     Returns:
         dict: Un dictionnaire contenant la prédiction de la fréquence.
     """
+
     prediction: Optional[float] = None
 
 
 # =============================================
-#-------- CHARGEMENT DES DONNEES -------------#
+# -------- CHARGEMENT DES DONNEES -------------#
 # =============================================
 DATA_DIR = os.path.dirname(__file__)
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+)
 
 # --- Input ---
-MODEL_FREQUENCE_PATH = os.path.join(PROJECT_ROOT, "output_models", "modeles", "model_frequence.json")
+MODEL_FREQUENCE_PATH = os.path.join(
+    PROJECT_ROOT, "output_models", "modeles", "model_frequence.json"
+)
 os.makedirs(os.path.dirname(MODEL_FREQUENCE_PATH), exist_ok=True)
 
 # =============================================
-#------ ROUTAGE ----------#
+# ------ ROUTAGE ----------#
 # =============================================
 
 router = APIRouter()
@@ -111,7 +119,9 @@ def _build_frequence_model() -> Model_Prediction_Frequence:
     model = Model_Prediction_Frequence()
 
     if not os.path.exists(MODEL_FREQUENCE_PATH):
-        raise HTTPException(status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}")
+        raise HTTPException(
+            status_code=500, detail=f"Model JSON introuvable: {MODEL_FREQUENCE_PATH}"
+        )
 
     try:
         loaded = model.load_model(MODEL_FREQUENCE_PATH)
@@ -124,7 +134,9 @@ def _build_frequence_model() -> Model_Prediction_Frequence:
                 ),
             )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur chargement artefact frequence JSON: {exc}")
+        raise HTTPException(
+            status_code=500, detail=f"Erreur chargement artefact frequence JSON: {exc}"
+        )
 
     return model
 
@@ -151,16 +163,17 @@ def health_predictio_frequence():
         "detail": FREQUENCE_MODEL_LOAD_ERROR,
     }
 
+
 @router.post("/predict_frequence", response_model=FrequenceOutput)
 def prediction(input_data: FrequenceInput):
     """
     Prédiction de la fréquence d'un contrat d'assurance auto.
-    
+
     Paramètres
     ----------
     input_data : FrequenceInput
         Données d'entrée du contrat (voir modèle Pydantic).
-    
+
     Retour
     ------
     FrequenceOutput

@@ -1,4 +1,3 @@
-
 """
 Interface Streamlit pour la prédiction de la prime d'assurance.
 
@@ -19,12 +18,7 @@ sinistres = st.number_input("Nombre de sinistres", min_value=0)
 
 if st.button("Prédire"):
     response = requests.post(
-        f"{API_URL}/predict",
-        json={
-            "age": age,
-            "bonus": bonus,
-            "sinistres": sinistres
-        }
+        f"{API_URL}/predict", json={"age": age, "bonus": bonus, "sinistres": sinistres}
     )
 
     result = response.json()

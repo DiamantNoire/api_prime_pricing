@@ -1,4 +1,3 @@
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -55,8 +54,7 @@ def repo_with_table(tmp_path):
     repo = ContratRepository(str(db_path))
 
     with repo._connect() as conn:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE historique_contrats (
                 id_client TEXT,
                 id_vehicule TEXT,
@@ -91,8 +89,7 @@ def repo_with_table(tmp_path):
                 nombre_sinistres INTEGER,
                 montant_sinistre REAL
             )
-            """
-        )
+            """)
         conn.commit()
 
     return repo
@@ -159,7 +156,9 @@ def test_update_by_id_contrat_updates_existing_row(repo_with_table, sample_paylo
     assert updated["prix_vehicule"] == 30000
 
 
-def test_update_by_id_contrat_returns_none_when_id_not_found(repo_with_table, sample_payload):
+def test_update_by_id_contrat_returns_none_when_id_not_found(
+    repo_with_table, sample_payload
+):
     result = repo_with_table.update_by_id_contrat("UNKNOWN", sample_payload)
 
     assert result is None

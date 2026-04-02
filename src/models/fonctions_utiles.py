@@ -1,13 +1,12 @@
-#--*- coding: utf-8 -*-
+# --*- coding: utf-8 -*-
 
 # ===============================================================
-# 1- IMPORTATIONS DES LIBRAIRIES 
+# 1- IMPORTATIONS DES LIBRAIRIES
 # 2- CONFIGURATION DE LA BARRE DE CHARGEMENT
-# 3- CLASSES UTILES FREQUENCE D'APPARITION D'UN SINISTRE 
+# 3- CLASSES UTILES FREQUENCE D'APPARITION D'UN SINISTRE
 # 4- CLASSE DE PREDICTION DE LA SEVERITE (GRAVITE) D'UN SINISTRE
-# 5- CLASSE DE CREATION POUR LA BASE DE DONNEES LOCALES 
+# 5- CLASSE DE CREATION POUR LA BASE DE DONNEES LOCALES
 # ===============================================================
-
 
 
 # =============================================
@@ -16,17 +15,13 @@
 # --- Standard library ---
 
 import os
-import re 
 import json
-import base64
 import sqlite3
-import requests
 import logging
 
 
 import pickle
 import tempfile
-from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -37,26 +32,18 @@ import pandas as pd
 
 # --- Scikit-learn ---
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.metrics import (
-    accuracy_score,
-    f1_score,
     mean_absolute_error,
-    precision_score,
     r2_score,
-    recall_score,
-    roc_auc_score,
     root_mean_squared_error,
 )
-from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
 try:
     from xgboost import XGBRegressor
 except ImportError:
     XGBRegressor = None
-
 
 
 # ===================================================
@@ -65,32 +52,39 @@ except ImportError:
 try:
     from tqdm.auto import tqdm
 except ImportError:
+
     class _DummyTqdm:
         def __init__(self, total=1, desc=None, leave=True):
             pass
+
         def update(self, n):
             pass
+
         def close(self):
             pass
+
     def tqdm(*args, **kwargs):
         return _DummyTqdm()
 
+
 LOGGER = logging.getLogger(__name__)
-    
+
 PROGRESS_STYLE = {
-    'ascii': True,
-    'colour': 'cyan',
-    'bar_format': '{l_bar}{bar} | {n_fmt}/{total_fmt} • {elapsed} < {remaining}',
-    'dynamic_ncols': True,
-    'leave': True,
+    "ascii": True,
+    "colour": "cyan",
+    "bar_format": "{l_bar}{bar} | {n_fmt}/{total_fmt} • {elapsed} < {remaining}",
+    "dynamic_ncols": True,
+    "leave": True,
 }
 PROGRESS_STYLE_INTERNAL = {
-    'ascii': True,
-    'colour': 'red',
-    'bar_format': '{l_bar}{bar} | {n_fmt}/{total_fmt} • {elapsed} < {remaining}',
-    'dynamic_ncols': True,
-    'leave': True,
+    "ascii": True,
+    "colour": "red",
+    "bar_format": "{l_bar}{bar} | {n_fmt}/{total_fmt} • {elapsed} < {remaining}",
+    "dynamic_ncols": True,
+    "leave": True,
 }
+
+
 def run_step(desc, fn, *args, **kwargs):
     """
     Exécute une étape de pipeline avec une barre de progression et retourne le résultat.
@@ -111,6 +105,7 @@ def run_step(desc, fn, *args, **kwargs):
     finally:
         bar.close()
     return result
+
 
 def run_internal_step(desc, fn, *args, **kwargs):
     """
@@ -133,13 +128,13 @@ def run_internal_step(desc, fn, *args, **kwargs):
         bar.close()
     return result
 
+
 # ===========================================================================
 # 3--- CLASSES UTILES FREQUENCE D'APPARITION D'UN SINISTRE --------#
 # ===========================================================================
 
-def _generer_csv_pred_freqence(df:pd.DataFrame,
-                                y_pred: pd.Series, 
-                                path:str) -> None:
+
+def _generer_csv_pred_freqence(df: pd.DataFrame, y_pred: pd.Series, path: str) -> None:
     """
     Exporte les prédictions de fréquence dans un CSV à deux colonnes (index, pred).
 
@@ -149,11 +144,9 @@ def _generer_csv_pred_freqence(df:pd.DataFrame,
         path (str): Chemin du fichier de sortie.
     """
     # Export prédictions test
-    submission_df = pd.DataFrame({
-        'index': df['index'],
-        'pred':  y_pred
-    })
+    submission_df = pd.DataFrame({"index": df["index"], "pred": y_pred})
     submission_df.to_csv(path, index=False)
+
 
 @dataclass
 class Frequence_Preprocessing:
@@ -178,9 +171,9 @@ class Frequence_Preprocessing:
         self.second_target_col = "montant_sinistre"
         self.preprocessing_map = {}
         self.id_columns_by_dataset = {
-            "frequence_train": ['index', 'id_client', 'id_vehicule', 'id_contrat'],
-            "frequence_valid": ['index', 'id_client', 'id_vehicule', 'id_contrat'],
-            "frequence_test": ['index'],
+            "frequence_train": ["index", "id_client", "id_vehicule", "id_contrat"],
+            "frequence_valid": ["index", "id_client", "id_vehicule", "id_contrat"],
+            "frequence_test": ["index"],
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -221,9 +214,11 @@ class Frequence_Preprocessing:
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
             return df.copy()
-        return df.drop(columns=cols_to_remove, errors='ignore').copy()
-    
-    def _transform_remove_null_second_target(self, df:pd.DataFrame, second_target_col: Optional[str]=None) -> pd.DataFrame:
+        return df.drop(columns=cols_to_remove, errors="ignore").copy()
+
+    def _transform_remove_null_second_target(
+        self, df: pd.DataFrame, second_target_col: Optional[str] = None
+    ) -> pd.DataFrame:
         """
         Filtre les lignes où la colonne cible secondaire est nulle.
 
@@ -239,12 +234,12 @@ class Frequence_Preprocessing:
         if second_target_col in df.columns:
             return df[df[second_target_col].notnull()].copy()
         return df
-    
+
     def _fit_preprocess_NanRemover(
         self,
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]] = None,
-        threshold: Optional[float] = 0.9
+        threshold: Optional[float] = 0.9,
     ) -> List[str]:
         """
         Trouve les colonnes dont le ratio de valeurs nulles dépasse le seuil fourni.
@@ -261,9 +256,7 @@ class Frequence_Preprocessing:
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
     def _transform_preprocess_NanRemover(
-        self,
-        df: pd.DataFrame,
-        columns_to_remove: Optional[List[str]]
+        self, df: pd.DataFrame, columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
         """
         Supprime les colonnes identifiées lors de l'ajustement du retrait de NaN.
@@ -276,7 +269,7 @@ class Frequence_Preprocessing:
             pd.DataFrame: DataFrame sans les colonnes retirées.
         """
         df = self._ensure_dataframe(df)
-        return df.drop(columns=columns_to_remove or [], errors='ignore')
+        return df.drop(columns=columns_to_remove or [], errors="ignore")
 
 
 @dataclass
@@ -349,31 +342,39 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
 
         if self.booking_applied.get("transform_remove_id_columns_key", False):
             X = self.frequence_process._transform_remove_id_columns(
-                name=self.booking_applied.get("dataset_name_for_id_removal_key", "frequence_train"),
-                df=X
+                name=self.booking_applied.get(
+                    "dataset_name_for_id_removal_key", "frequence_train"
+                ),
+                df=X,
             )
 
         if self.booking_applied.get("fit_process_nan_remover_key", False):
             self.columns_to_remove = self.frequence_process._fit_preprocess_NanRemover(
                 df=X,
                 columns_to_remove=self.columns_to_remove,
-                threshold=self.booking_applied.get("threshold_key", 0.9)
+                threshold=self.booking_applied.get("threshold_key", 0.9),
             )
 
         if self.booking_applied.get("transform_process_nan_remover_key", False):
-            X = self.frequence_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
+            X = self.frequence_process._transform_preprocess_NanRemover(
+                X, self.columns_to_remove
+            )
 
         if self.booking_applied.get("select_numeric_features_only_key", True):
             self.selected_numeric_features_ = [
-                col for col in X.columns
-                if pd.api.types.is_numeric_dtype(X[col]) and col not in self.excluded_feature_columns_
+                col
+                for col in X.columns
+                if pd.api.types.is_numeric_dtype(X[col])
+                and col not in self.excluded_feature_columns_
             ]
             X = X[self.selected_numeric_features_].copy()
         else:
             self.selected_numeric_features_ = list(X.columns)
 
         num = X.select_dtypes(include=[np.number])
-        self.fill_values_ = num.median(numeric_only=True).to_dict() if not num.empty else {}
+        self.fill_values_ = (
+            num.median(numeric_only=True).to_dict() if not num.empty else {}
+        )
         return self
 
     def transform(self, X: pd.DataFrame, y: pd.Series = None):
@@ -393,12 +394,16 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
 
         if self.booking_applied.get("transform_remove_id_columns_key", False):
             X = self.frequence_process._transform_remove_id_columns(
-                name=self.booking_applied.get("dataset_name_for_id_removal_key", "frequence_train"),
-                df=X
+                name=self.booking_applied.get(
+                    "dataset_name_for_id_removal_key", "frequence_train"
+                ),
+                df=X,
             )
 
         if self.booking_applied.get("transform_process_nan_remover_key", False):
-            X = self.frequence_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
+            X = self.frequence_process._transform_preprocess_NanRemover(
+                X, self.columns_to_remove
+            )
 
         if self.selected_numeric_features_:
             X = X.reindex(columns=self.selected_numeric_features_)
@@ -424,17 +429,19 @@ class Frequence_Feature_Engineer(BaseEstimator, TransformerMixin):
         """Serialize and save a fitted frequency feature-engineering artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 pickle.dump(fe, f)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la sauvegarde du feature engineer frequence")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la sauvegarde du feature engineer frequence"
+            )
 
     def load_feature_engineer(self, filepath: str):
         """Load a previously serialized frequency feature-engineering artifact."""
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 return pickle.load(f)
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors du chargement du feature engineer frequence")
             return None
 
@@ -446,9 +453,22 @@ class Model_Prediction_Frequence(BaseEstimator):
     def __init__(self):
         """Initialize the frequency model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = Pipeline([
-            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
-        ])
+        self.pipeline_ = Pipeline(
+            [
+                (
+                    "model",
+                    XGBRegressor(
+                        objective="reg:squarederror",
+                        n_estimators=300,
+                        learning_rate=0.05,
+                        max_depth=6,
+                        subsample=0.9,
+                        colsample_bytree=0.9,
+                        random_state=42,
+                    ),
+                ),
+            ]
+        )
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
@@ -502,16 +522,18 @@ class Model_Prediction_Frequence(BaseEstimator):
         X = self._ensure_dataframe(X)
         self.selected_features_ = list(X.columns)
         num = X.select_dtypes(include=[np.number])
-        self.fill_values_ = num.median(numeric_only=True).to_dict() if not num.empty else {}
+        self.fill_values_ = (
+            num.median(numeric_only=True).to_dict() if not num.empty else {}
+        )
         X = X.fillna(self.fill_values_)
 
         if param_grid is None:
             param_grid = {
-                'model__n_estimators': [100, 200, 300],
-                'model__learning_rate': [0.01, 0.05, 0.1],
-                'model__max_depth': [4, 6, 8],
-                'model__subsample': [0.8, 0.9],
-                'model__colsample_bytree': [0.8, 0.9],
+                "model__n_estimators": [100, 200, 300],
+                "model__learning_rate": [0.01, 0.05, 0.1],
+                "model__max_depth": [4, 6, 8],
+                "model__subsample": [0.8, 0.9],
+                "model__colsample_bytree": [0.8, 0.9],
             }
 
         cv = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -519,9 +541,9 @@ class Model_Prediction_Frequence(BaseEstimator):
             estimator=self.pipeline_,
             param_grid=param_grid,
             cv=cv,
-            scoring='neg_mean_squared_error',
+            scoring="neg_mean_squared_error",
             n_jobs=-1,
-            refit=True
+            refit=True,
         )
         grid.fit(X, y)
 
@@ -549,11 +571,13 @@ class Model_Prediction_Frequence(BaseEstimator):
         """
         X = self._prepare_X(X)
         self.pipeline_.fit(X, y)
-        self.history_.append({
-            "step": "fit",
-            "n_rows": X.shape[0],
-            "n_cols": X.shape[1],
-        })
+        self.history_.append(
+            {
+                "step": "fit",
+                "n_rows": X.shape[0],
+                "n_cols": X.shape[1],
+            }
+        )
         return self
 
     def predict(self, X: pd.DataFrame):
@@ -569,11 +593,13 @@ class Model_Prediction_Frequence(BaseEstimator):
         X = self._prepare_X(X)
         return self.pipeline_.predict(X)
 
-    def metrics(self,
-                y_train: pd.Series,
-                y_pred_train: np.ndarray,
-                y_valid: Optional[pd.Series] = None,
-                y_pred_valid: Optional[pd.Series] = None) -> Dict[str, Any]:
+    def metrics(
+        self,
+        y_train: pd.Series,
+        y_pred_train: np.ndarray,
+        y_valid: Optional[pd.Series] = None,
+        y_pred_valid: Optional[pd.Series] = None,
+    ) -> Dict[str, Any]:
         """
         Calcule les métriques de régression pour l'entraînement et éventuellement la validation.
 
@@ -600,15 +626,14 @@ class Model_Prediction_Frequence(BaseEstimator):
                 "r2": r2_score(y_valid, y_pred_valid),
             }
         return out
-    
-    def test_prediction_stats(self, 
-                              y_pred_test: np.ndarray, 
-                              filepath: Optional[str] = None) -> pd.Series:
+
+    def test_prediction_stats(
+        self, y_pred_test: np.ndarray, filepath: Optional[str] = None
+    ) -> pd.Series:
         """Compute summary stats for test predictions and optionally save them."""
         stats_test = pd.Series(
-            y_pred_test,
-            name='predicted_montant_sinistre'
-        ).aggregate(['mean', 'std', 'min', 'median', 'max'])
+            y_pred_test, name="predicted_montant_sinistre"
+        ).aggregate(["mean", "std", "min", "median", "max"])
 
         if filepath is not None:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -616,9 +641,9 @@ class Model_Prediction_Frequence(BaseEstimator):
 
         return stats_test
 
-    
-
-    def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+    def save_model(
+        self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None
+    ):
         """Save model pipeline and metadata to a pickle | json artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -633,33 +658,37 @@ class Model_Prediction_Frequence(BaseEstimator):
                 "history_": self.history_,
                 "metadata": {
                     "saved_at": datetime.now().isoformat(),
-                    **(metadata or {})
-                }
+                    **(metadata or {}),
+                },
             }
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 pickle.dump(artifact, f)
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la sauvegarde du modele frequence")
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
         # Preferred format: JSON complete artifact.
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
 
             if isinstance(loaded, dict):
                 self.model_name_ = loaded.get("model_name_", self.model_name_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.selected_features_ = loaded.get(
+                    "selected_features_", self.selected_features_
+                )
                 self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 self.history_ = loaded.get("history_", self.history_)
 
                 xgb_model_json = loaded.get("xgb_model_json")
                 if xgb_model_json:
                     xgb_model = XGBRegressor()
-                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".json", delete=False, mode="w", encoding="utf-8"
+                    ) as tmp:
                         tmp.write(xgb_model_json)
                         tmp_path = tmp.name
                     xgb_model.load_model(tmp_path)
@@ -671,25 +700,30 @@ class Model_Prediction_Frequence(BaseEstimator):
 
         # Legacy fallback: pickle artifact.
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 loaded = pickle.load(f)
             if isinstance(loaded, dict):
                 self.pipeline_ = loaded.get("pipeline_", self.pipeline_)
-                self.best_estimator_ = loaded.get("best_estimator_", self.best_estimator_)
+                self.best_estimator_ = loaded.get(
+                    "best_estimator_", self.best_estimator_
+                )
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.selected_features_ = loaded.get(
+                    "selected_features_", self.selected_features_
+                )
                 self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 return loaded
             return None
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors du chargement du modele frequence")
             return None
+
     def save_complete_artifact(
         self,
         filepath: str,
         feature_engineer=None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """Save a complete inference artifact as JSON (no pickle file)."""
         try:
@@ -710,21 +744,25 @@ class Model_Prediction_Frequence(BaseEstimator):
                 "fill_values_": self.fill_values_,
                 "history_": self.history_,
                 "xgb_model_json": xgb_model_json,
-                "feature_engineer_class": feature_engineer.__class__.__name__ if feature_engineer is not None else None,
+                "feature_engineer_class": (
+                    feature_engineer.__class__.__name__
+                    if feature_engineer is not None
+                    else None
+                ),
                 "metadata": {
                     "saved_at": datetime.utcnow().isoformat(),
                     **(metadata or {}),
-                }
+                },
             }
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact complet frequence")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la sauvegarde de l'artefact complet frequence"
+            )
 
     def save_synthetic_artifact(
-        self,
-        filepath: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, filepath: str, metadata: Optional[Dict[str, Any]] = None
     ):
         """Save a lightweight artifact containing key model metadata only."""
         try:
@@ -739,40 +777,37 @@ class Model_Prediction_Frequence(BaseEstimator):
                     "saved_at": datetime.utcnow().isoformat(),
                     "artifact_type": "synthetic_model_artifact",
                     **(metadata or {}),
-                }
+                },
             }
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact synthetique frequence")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la sauvegarde de l'artefact synthetique frequence"
+            )
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
             if isinstance(loaded, dict):
                 return loaded.get("metadata")
             return None
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la lecture des metadonnees frequence")
             return None
-
 
 
 # ===========================================================================
 # 4--- CLASSE DE PREDICTION DE LA SEVERITE (GRAVITE) D'UN SINISTRE --------#
 # ===========================================================================
 
-def _generer_csv_pred_severite(df:pd.DataFrame,
-                                y_pred: pd.Series, 
-                                path:str) -> None:
+
+def _generer_csv_pred_severite(df: pd.DataFrame, y_pred: pd.Series, path: str) -> None:
     """Export severity predictions to a two-column CSV (index, pred)."""
     # Export prédictions test
-    submission_df = pd.DataFrame({
-        'index': df['index'],
-        'pred':  y_pred
-    }).to_csv(path, index=False)
+    pd.DataFrame({"index": df["index"], "pred": y_pred}).to_csv(path, index=False)
 
 
 @dataclass
@@ -790,9 +825,9 @@ class Severite_Preprocessing:
         self.preprocessing_map = {}
         self.categorical_features = []
         self.id_columns_by_dataset = {
-            "severite_train": ['index', 'id_client', 'id_vehicule', 'id_contrat'],
-            "severite_valid": ['index', 'id_client', 'id_vehicule', 'id_contrat'],
-            "severite_test": ['index'],
+            "severite_train": ["index", "id_client", "id_vehicule", "id_contrat"],
+            "severite_valid": ["index", "id_client", "id_vehicule", "id_contrat"],
+            "severite_test": ["index"],
         }
 
     def _ensure_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -824,9 +859,11 @@ class Severite_Preprocessing:
         cols_to_remove = self.id_columns_by_dataset.get(name)
         if cols_to_remove is None:
             return df.copy()
-        return df.drop(columns=cols_to_remove, errors='ignore')
+        return df.drop(columns=cols_to_remove, errors="ignore")
 
-    def _transform_remove_zero_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+    def _transform_remove_zero_target(
+        self, df: pd.DataFrame, target_col: Optional[str] = None
+    ) -> pd.DataFrame:
         """
         Filtre les lignes où la cible est égale à zéro.
 
@@ -844,7 +881,9 @@ class Severite_Preprocessing:
         return df
 
     # Compatibilité avec le code existant
-    def _transform_remove_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+    def _transform_remove_null_target(
+        self, df: pd.DataFrame, target_col: Optional[str] = None
+    ) -> pd.DataFrame:
         """
         Alias de compatibilité pour retirer les lignes avec une cible à zéro.
 
@@ -857,7 +896,9 @@ class Severite_Preprocessing:
         """
         return self._transform_remove_zero_target(df, target_col=target_col)
 
-    def _transform_preprocess_null_target(self, df: pd.DataFrame, target_col: Optional[str] = None) -> pd.DataFrame:
+    def _transform_preprocess_null_target(
+        self, df: pd.DataFrame, target_col: Optional[str] = None
+    ) -> pd.DataFrame:
         """
         Filtre les lignes où la colonne cible est nulle.
 
@@ -887,7 +928,7 @@ class Severite_Preprocessing:
         self,
         df: pd.DataFrame,
         columns_to_remove: Optional[List[str]] = None,
-        threshold: Optional[float] = 0.9
+        threshold: Optional[float] = 0.9,
     ) -> List[str]:
         """
         Trouve les colonnes dont le ratio de valeurs nulles dépasse le seuil fourni.
@@ -904,9 +945,7 @@ class Severite_Preprocessing:
         return [col for col in df.columns if df[col].isna().mean() > threshold]
 
     def _transform_preprocess_NanRemover(
-        self,
-        df: pd.DataFrame,
-        columns_to_remove: Optional[List[str]]
+        self, df: pd.DataFrame, columns_to_remove: Optional[List[str]]
     ) -> pd.DataFrame:
         """
         Supprime les colonnes identifiées lors de l'ajustement du retrait de NaN.
@@ -919,7 +958,7 @@ class Severite_Preprocessing:
             pd.DataFrame: DataFrame sans les colonnes retirées.
         """
         df = self._ensure_dataframe(df)
-        return df.drop(columns=columns_to_remove or [], errors='ignore')
+        return df.drop(columns=columns_to_remove or [], errors="ignore")
 
 
 @dataclass
@@ -963,7 +1002,9 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         }
 
         self.preprocessing_map = preprocessing_map or {}
-        self.excluded_feature_columns_ = excluded_feature_columns or ["nombre_sinistres"]
+        self.excluded_feature_columns_ = excluded_feature_columns or [
+            "nombre_sinistres"
+        ]
         self.severite_process.set_preprocessing_map(self.preprocessing_map)
         return self
 
@@ -980,24 +1021,29 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         X = X.copy()
 
         if self.booking_applied.get("transform_remove_id_columns_key", False):
-            dataset_name = (
-                self.dataset_name_for_transform_
-                or self.booking_applied.get("dataset_name_for_id_removal_key", "severite_train")
+            dataset_name = self.dataset_name_for_transform_ or self.booking_applied.get(
+                "dataset_name_for_id_removal_key", "severite_train"
             )
-            X = self.severite_process._transform_remove_id_columns(name=dataset_name, df=X)
+            X = self.severite_process._transform_remove_id_columns(
+                name=dataset_name, df=X
+            )
 
         if self.booking_applied.get("transform_process_nan_remover_key", False):
             self.columns_to_remove = self.severite_process._fit_preprocess_NanRemover(
                 df=X,
                 columns_to_remove=self.columns_to_remove,
-                threshold=self.booking_applied.get("threshold_key", 0.9)
+                threshold=self.booking_applied.get("threshold_key", 0.9),
             )
-            X = self.severite_process._transform_preprocess_NanRemover(X, self.columns_to_remove)
+            X = self.severite_process._transform_preprocess_NanRemover(
+                X, self.columns_to_remove
+            )
 
         if self.booking_applied.get("select_numeric_features_only_key", True):
             selected_cols = [
-                col for col in X.columns
-                if pd.api.types.is_numeric_dtype(X[col]) and col not in self.excluded_feature_columns_
+                col
+                for col in X.columns
+                if pd.api.types.is_numeric_dtype(X[col])
+                and col not in self.excluded_feature_columns_
             ]
             self.selected_numeric_features_ = selected_cols
             X = X[self.selected_numeric_features_].copy()
@@ -1005,7 +1051,9 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
             self.selected_numeric_features_ = list(X.columns)
 
         num = X.select_dtypes(include=[np.number])
-        self.fill_values_ = num.median(numeric_only=True).to_dict() if not num.empty else {}
+        self.fill_values_ = (
+            num.median(numeric_only=True).to_dict() if not num.empty else {}
+        )
 
         self.n_features_in_ = X.shape[1]
         self.feature_names_in_ = list(X.columns)
@@ -1018,13 +1066,11 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         X = X.copy()
 
         if self.booking_applied.get("transform_remove_id_columns_key", False):
-            dataset_name = (
-                self.dataset_name_for_transform_
-                or self.booking_applied.get("dataset_name_for_id_removal_key", "severite_train")
+            dataset_name = self.dataset_name_for_transform_ or self.booking_applied.get(
+                "dataset_name_for_id_removal_key", "severite_train"
             )
             X = self.severite_process._transform_remove_id_columns(
-                name=dataset_name,
-                df=X
+                name=dataset_name, df=X
             )
 
         if self.booking_applied.get("transform_remove_zero_target_key", False):
@@ -1035,8 +1081,7 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
 
         if self.booking_applied.get("transform_process_nan_remover_key", False):
             X = self.severite_process._transform_preprocess_NanRemover(
-                X,
-                self.columns_to_remove
+                X, self.columns_to_remove
             )
 
         if self.selected_numeric_features_:
@@ -1055,18 +1100,18 @@ class Severite_Feature_Engineer(BaseEstimator, TransformerMixin):
         """Serialize and save a fitted severity feature-engineering artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 pickle.dump(fe, f)
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la sauvegarde du feature engineer")
 
     def load_feature_engineer(self, filepath: str):
         """Load a previously serialized severity feature-engineering artifact."""
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 fe = pickle.load(f)
             return fe
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors du chargement du feature engineer")
             return None
 
@@ -1078,9 +1123,22 @@ class Model_Prediction_Severite(BaseEstimator):
     def __init__(self):
         """Initialize the severity model pipeline and training metadata."""
         self.model_name_ = "XGBRegressor"
-        self.pipeline_ = Pipeline([
-            ("model", XGBRegressor(objective="reg:squarederror", n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.9, colsample_bytree=0.9, random_state=42)),
-        ])
+        self.pipeline_ = Pipeline(
+            [
+                (
+                    "model",
+                    XGBRegressor(
+                        objective="reg:squarederror",
+                        n_estimators=300,
+                        learning_rate=0.05,
+                        max_depth=6,
+                        subsample=0.9,
+                        colsample_bytree=0.9,
+                        random_state=42,
+                    ),
+                ),
+            ]
+        )
         self.best_estimator_ = None
         self.best_params_ = None
         self.best_score_ = None
@@ -1122,7 +1180,9 @@ class Model_Prediction_Severite(BaseEstimator):
 
         return X
 
-    def tune_GBRegressor_hyperparameters(self, X, y, param_grid=None, cv=5, scoring='neg_mean_squared_error'):
+    def tune_GBRegressor_hyperparameters(
+        self, X, y, param_grid=None, cv=5, scoring="neg_mean_squared_error"
+    ):
         """
         Optimise les hyperparamètres du GradientBoostingRegressor par validation croisée.
 
@@ -1144,16 +1204,18 @@ class Model_Prediction_Severite(BaseEstimator):
 
         self.selected_features_ = list(X_copie.columns)
         num = X_copie.select_dtypes(include=[np.number])
-        self.fill_values_ = num.median(numeric_only=True).to_dict() if not num.empty else {}
+        self.fill_values_ = (
+            num.median(numeric_only=True).to_dict() if not num.empty else {}
+        )
         X_copie = X_copie.fillna(self.fill_values_)
 
         if param_grid is None:
             param_grid = {
-                'model__n_estimators': [100, 200, 300],
-                'model__learning_rate': [0.01, 0.05, 0.1],
-                'model__max_depth': [4, 6, 8],
-                'model__subsample': [0.8, 0.9],
-                'model__colsample_bytree': [0.8, 0.9],
+                "model__n_estimators": [100, 200, 300],
+                "model__learning_rate": [0.01, 0.05, 0.1],
+                "model__max_depth": [4, 6, 8],
+                "model__subsample": [0.8, 0.9],
+                "model__colsample_bytree": [0.8, 0.9],
             }
 
         grid_search = GridSearchCV(
@@ -1162,7 +1224,7 @@ class Model_Prediction_Severite(BaseEstimator):
             cv=cv,
             scoring=scoring,
             n_jobs=-1,
-            refit=True
+            refit=True,
         )
 
         grid_search.fit(X_copie, y_copie)
@@ -1172,11 +1234,13 @@ class Model_Prediction_Severite(BaseEstimator):
         self.best_score_ = grid_search.best_score_
         self.pipeline_ = grid_search.best_estimator_
 
-        self.history_.append({
-            "step": "tune",
-            "best_params_": self.best_params_,
-            "best_score_": self.best_score_,
-        })
+        self.history_.append(
+            {
+                "step": "tune",
+                "best_params_": self.best_params_,
+                "best_score_": self.best_score_,
+            }
+        )
 
         return {
             "best_params_": self.best_params_,
@@ -1203,16 +1267,20 @@ class Model_Prediction_Severite(BaseEstimator):
 
         self.selected_features_ = list(X_copie.columns)
         num = X_copie.select_dtypes(include=[np.number])
-        self.fill_values_ = num.median(numeric_only=True).to_dict() if not num.empty else {}
+        self.fill_values_ = (
+            num.median(numeric_only=True).to_dict() if not num.empty else {}
+        )
         X_copie = X_copie.fillna(self.fill_values_)
 
         self.pipeline_.fit(X_copie, y_copie)
 
-        self.history_.append({
-            "step": "fit",
-            "n_rows": X_copie.shape[0],
-            "n_cols": X_copie.shape[1],
-        })
+        self.history_.append(
+            {
+                "step": "fit",
+                "n_rows": X_copie.shape[0],
+                "n_cols": X_copie.shape[1],
+            }
+        )
 
         return self
 
@@ -1229,10 +1297,13 @@ class Model_Prediction_Severite(BaseEstimator):
         X_prepared = self._prepare_X(X)
         return self.pipeline_.predict(X_prepared)
 
-    def metrics(self, y_train: pd.Series, 
-                y_pred_train: pd.Series,
-                y_valid: Optional[pd.Series] = None, 
-                y_pred_valid: Optional[pd.Series] = None) -> Dict[str, Any]:
+    def metrics(
+        self,
+        y_train: pd.Series,
+        y_pred_train: pd.Series,
+        y_valid: Optional[pd.Series] = None,
+        y_pred_valid: Optional[pd.Series] = None,
+    ) -> Dict[str, Any]:
         """
         Calcule les métriques de régression pour l'entraînement et éventuellement la validation.
 
@@ -1262,14 +1333,13 @@ class Model_Prediction_Severite(BaseEstimator):
 
         return results
 
-    def test_prediction_stats(self, 
-                              y_pred_test: np.ndarray, 
-                              filepath: Optional[str] = None) -> pd.Series:
+    def test_prediction_stats(
+        self, y_pred_test: np.ndarray, filepath: Optional[str] = None
+    ) -> pd.Series:
         """Compute summary stats for test predictions and optionally save them."""
         stats_test = pd.Series(
-            y_pred_test,
-            name='predicted_montant_sinistre'
-        ).aggregate(['mean', 'std', 'min', 'median', 'max'])
+            y_pred_test, name="predicted_montant_sinistre"
+        ).aggregate(["mean", "std", "min", "median", "max"])
 
         if filepath is not None:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -1277,7 +1347,9 @@ class Model_Prediction_Severite(BaseEstimator):
 
         return stats_test
 
-    def save_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+    def save_model(
+        self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None
+    ):
         """Save model pipeline and metadata to a pickle artifact."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -1293,42 +1365,47 @@ class Model_Prediction_Severite(BaseEstimator):
                 "metadata": {
                     "saved_at": datetime.utcnow().isoformat(),
                     **(metadata or {}),
-                }
+                },
             }
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 pickle.dump(artifact, f)
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la sauvegarde du modele")
 
-
-    def save_pure_model(self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None):
+    def save_pure_model(
+        self, model_, filepath: str, metadata: Optional[Dict[str, Any]] = None
+    ):
         """Save only the fitted model object without metadata or pipeline."""
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(model_, f, ensure_ascii=False, indent=2)
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la sauvegarde du modele pur")
 
     def load_model(self, filepath: str):
         """Load model artifact from JSON (preferred) or pickle (legacy)."""
         # Preferred format: JSON complete artifact with xgb_model_json.
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
 
             if isinstance(loaded, dict):
                 self.model_name_ = loaded.get("model_name_", self.model_name_)
                 self.best_params_ = loaded.get("best_params_", self.best_params_)
                 self.best_score_ = loaded.get("best_score_", self.best_score_)
-                self.selected_features_ = loaded.get("selected_features_", self.selected_features_)
+                self.selected_features_ = loaded.get(
+                    "selected_features_", self.selected_features_
+                )
                 self.fill_values_ = loaded.get("fill_values_", self.fill_values_)
                 self.history_ = loaded.get("history_", self.history_)
 
                 xgb_model_json = loaded.get("xgb_model_json")
                 if xgb_model_json:
                     xgb_model = XGBRegressor()
-                    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as tmp:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".json", delete=False, mode="w", encoding="utf-8"
+                    ) as tmp:
                         tmp.write(xgb_model_json)
                         tmp_path = tmp.name
                     xgb_model.load_model(tmp_path)
@@ -1336,7 +1413,7 @@ class Model_Prediction_Severite(BaseEstimator):
                     self.pipeline_ = Pipeline([("model", xgb_model)])
 
             return loaded
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors du chargement du modele severite")
             return None
 
@@ -1344,7 +1421,7 @@ class Model_Prediction_Severite(BaseEstimator):
         self,
         filepath: str,
         feature_engineer=None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """Save a complete inference artifact as JSON with embedded XGBoost model."""
         try:
@@ -1365,22 +1442,26 @@ class Model_Prediction_Severite(BaseEstimator):
                 "fill_values_": self.fill_values_,
                 "history_": self.history_,
                 "xgb_model_json": xgb_model_json,
-                "feature_engineer_class": feature_engineer.__class__.__name__ if feature_engineer is not None else None,
+                "feature_engineer_class": (
+                    feature_engineer.__class__.__name__
+                    if feature_engineer is not None
+                    else None
+                ),
                 "metadata": {
                     "saved_at": datetime.utcnow().isoformat(),
                     "artifact_type": "complete_inference_artifact",
                     **(metadata or {}),
-                }
+                },
             }
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact complet severite")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la sauvegarde de l'artefact complet severite"
+            )
 
     def save_synthetic_artifact(
-        self,
-        filepath: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, filepath: str, metadata: Optional[Dict[str, Any]] = None
     ):
         """Save a lightweight artifact containing key model metadata only."""
         try:
@@ -1395,30 +1476,35 @@ class Model_Prediction_Severite(BaseEstimator):
                     "saved_at": datetime.utcnow().isoformat(),
                     "artifact_type": "synthetic_model_artifact",
                     **(metadata or {}),
-                }
+                },
             }
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(artifact, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la sauvegarde de l'artefact synthetique severite")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la sauvegarde de l'artefact synthetique severite"
+            )
 
     def read_artifact_metadata(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Read and return metadata from a stored model artifact file."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
 
             if isinstance(loaded, dict):
-                return loaded.get('metadata', None)
+                return loaded.get("metadata", None)
             return None
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la lecture des metadonnees de l'artefact severite")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la lecture des metadonnees de l'artefact severite"
+            )
             return None
 
 
 # ===========================================================
 # 5- CLASSE DE CREATION POUR LA BASE DE DONNEES LOCALES  ---#
 # ============================================================
+
 
 @dataclass
 class Data_Base_Creator:
@@ -1433,13 +1519,17 @@ class Data_Base_Creator:
         try:
             df = pd.read_csv(csv_path)
             conn = sqlite3.connect(self.db_path)
-            df.to_sql('historique_contrats', conn, if_exists='replace', index=False)
+            df.to_sql("historique_contrats", conn, if_exists="replace", index=False)
             conn.close()
             LOGGER.info("Table historique_contrats creee a partir de %s", csv_path)
-        except Exception as e:
-            LOGGER.exception("Erreur lors de la creation de la table historique_contrats")
+        except Exception:
+            LOGGER.exception(
+                "Erreur lors de la creation de la table historique_contrats"
+            )
 
-    def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
+    def create_table_predictions(
+        self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str
+    ):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
         try:
             df_freq = pd.read_csv(path_pred_frequence)
@@ -1447,14 +1537,18 @@ class Data_Base_Creator:
             df_prime = pd.read_csv(path_pred_prime)
 
             # Fusion sur la colonne 'index'
-            df = df_freq[['index', 'pred']].rename(columns={'pred': 'pred_frequence'})
-            df = df.merge(df_sev[['index', 'pred']].rename(columns={'pred': 'pred_severite'}), on='index', how='left')
-            df = df.merge(df_prime[['index', 'pred']], on='index', how='left')
-            df = df.rename(columns={'pred': 'pred'})
+            df = df_freq[["index", "pred"]].rename(columns={"pred": "pred_frequence"})
+            df = df.merge(
+                df_sev[["index", "pred"]].rename(columns={"pred": "pred_severite"}),
+                on="index",
+                how="left",
+            )
+            df = df.merge(df_prime[["index", "pred"]], on="index", how="left")
+            df = df.rename(columns={"pred": "pred"})
 
             conn = sqlite3.connect(self.db_path)
-            df.to_sql('predictions', conn, if_exists='replace', index=False)
+            df.to_sql("predictions", conn, if_exists="replace", index=False)
             conn.close()
             LOGGER.info("Table predictions creee a partir des fichiers de prediction")
-        except Exception as e:
+        except Exception:
             LOGGER.exception("Erreur lors de la creation de la table predictions")

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import streamlit as st
 
-
 SRC_DIR = Path(__file__).resolve().parents[1]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -15,7 +14,9 @@ from app import config
 from app.layouts import footer, main_layout
 from app.pages import contrat, dashboard, inference
 
-logging.basicConfig(level=getattr(logging, config.LOG_LEVEL, logging.INFO), format=config.LOG_FORMAT)
+logging.basicConfig(
+    level=getattr(logging, config.LOG_LEVEL, logging.INFO), format=config.LOG_FORMAT
+)
 logger = logging.getLogger(__name__)
 
 
@@ -81,7 +82,9 @@ selected_home = st.radio(
     "Navigation",
     options=home_labels,
     horizontal=True,
-    index=home_labels.index(current_to_label.get(st.session_state.current_page, home_labels[0])),
+    index=home_labels.index(
+        current_to_label.get(st.session_state.current_page, home_labels[0])
+    ),
 )
 st.session_state.current_page = label_to_current[selected_home]
 
@@ -100,7 +103,9 @@ try:
     else:
         dashboard.render()
 except Exception:
-    logger.exception("Erreur lors du rendu de la page courante: %s", st.session_state.current_page)
+    logger.exception(
+        "Erreur lors du rendu de la page courante: %s", st.session_state.current_page
+    )
     st.error("Une erreur est survenue lors du rendu de la page.")
 
 # ==============================================================================

@@ -1,12 +1,8 @@
 
 # ===============================
-# docker-compose.yml pour le DEV local
 # - api: FastAPI
 # - app: Streamlit
-# - init_db/test: utilitaires via profiles
 # ===============================
-version: "3.9"
-
 services:
   api:
     build:
@@ -60,7 +56,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: /bin/bash -c "pytest -q tests && ruff check src/"
+    command: /bin/bash -c "pytest -q src/tests"
     volumes:
       - .:/app
     environment:

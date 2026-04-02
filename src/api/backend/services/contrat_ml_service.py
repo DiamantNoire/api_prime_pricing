@@ -1,6 +1,7 @@
 import joblib
 import os
 
+
 class MLService:
     """
     Service de prédiction de prime d'assurance via un modèle ML ou une formule naïve fallback.
@@ -22,7 +23,7 @@ class MLService:
                 print(f"Erreur lors du chargement du modèle : {e}")
                 self.model = None
         else:
-            print(f" Utilisation du modèle naif")
+            print(" Utilisation du modèle naif")
 
     def formule_naive(self, data: dict) -> float:
         """
@@ -55,11 +56,7 @@ class MLService:
         """
         # Si le modèle est chargé
         if self.model is not None:
-            features = [
-                data["age"],
-                data["bonus"],
-                data["sinistres"]
-            ]
+            features = [data["age"], data["bonus"], data["sinistres"]]
             prediction = self.model.predict([features])
             return float(prediction[0])
         # Sinon, utilise la formule naïve

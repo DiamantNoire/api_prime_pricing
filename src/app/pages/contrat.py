@@ -14,7 +14,7 @@ SRC_DIR = Path(__file__).resolve().parents[2]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from app.components import header, info_box, section_divider
+from app.components import header, section_divider
 from app.config import API_TIMEOUT, ENDPOINTS, FIELD_OPTIONS, FIELD_RANGES
 from app.services import ContratGateway
 
@@ -82,9 +82,15 @@ def _generate_auto_contract_fields() -> dict:
         "utilisation": random.choice(opts["utilisation"]),
         "code_postal": _random_code_postal(),
         "conducteur2": conducteur2,
-        "age_conducteur2": random.randint(*r["age_conducteur2"]) if conducteur2 == "Yes" else 0,
-        "sex_conducteur2": random.choice(opts["sex_conducteur2"]) if conducteur2 == "Yes" else "",
-        "anciennete_permis2": random.randint(*r["anciennete_permis2"]) if conducteur2 == "Yes" else 0,
+        "age_conducteur2": (
+            random.randint(*r["age_conducteur2"]) if conducteur2 == "Yes" else 0
+        ),
+        "sex_conducteur2": (
+            random.choice(opts["sex_conducteur2"]) if conducteur2 == "Yes" else ""
+        ),
+        "anciennete_permis2": (
+            random.randint(*r["anciennete_permis2"]) if conducteur2 == "Yes" else 0
+        ),
         "anciennete_vehicule": round(random.uniform(*r["anciennete_vehicule"]), 1),
         "din_vehicule": random.randint(*r["din_vehicule"]),
         "marque_vehicule": random.choice(opts["marque_vehicule"]),
@@ -207,7 +213,9 @@ def render() -> None:
         if mode == "Édition":
             col_load_1, col_load_2 = st.columns([2, 1])
             with col_load_1:
-                load_id = st.text_input("ID contrat à charger", placeholder="ex: CTR_12345")
+                load_id = st.text_input(
+                    "ID contrat à charger", placeholder="ex: CTR_12345"
+                )
             with col_load_2:
                 if st.button("Charger", use_container_width=True):
                     if not load_id.strip():
@@ -221,12 +229,16 @@ def render() -> None:
                             if exc.response.status_code == 404:
                                 st.error("Contrat introuvable.")
                             else:
-                                st.error(f"Erreur API: {exc.response.status_code} - {exc.response.text}")
+                                st.error(
+                                    f"Erreur API: {exc.response.status_code} - {exc.response.text}"
+                                )
                         except Exception as exc:
                             logger.exception("Erreur chargement contrat")
                             st.error(f"Erreur de chargement: {exc}")
 
-            st.caption("En mode édition, la mise à jour est appliquée sur l'identifiant chargé.")
+            st.caption(
+                "En mode édition, la mise à jour est appliquée sur l'identifiant chargé."
+            )
 
         section_divider("Saisie manuelle", icon="pencil-square")
 
@@ -282,7 +294,9 @@ def render() -> None:
         section_divider("Compléments auto-générés", icon="lightning-fill")
         col_auto_1, col_auto_2 = st.columns([1, 3])
         with col_auto_1:
-            if st.button("🔄 Remplissage auto", type="primary", use_container_width=True):
+            if st.button(
+                "🔄 Remplissage auto", type="primary", use_container_width=True
+            ):
                 for field_name, value in _generate_auto_contract_fields().items():
                     st.session_state[AUTO_STATE_KEYS[field_name]] = value
                 st.toast("Champs auto mis à jour", icon="✅")
@@ -318,18 +332,27 @@ def render() -> None:
 
         col_action_1, col_action_2 = st.columns(2)
         with col_action_1:
-            if st.button("Créer contrat", use_container_width=True, disabled=mode != "Création"):
+            if st.button(
+                "Créer contrat", use_container_width=True, disabled=mode != "Création"
+            ):
                 try:
                     created = gateway.create(payload)
                     st.success(f"Contrat créé: {created['id_contrat']}")
                 except requests.exceptions.HTTPError as exc:
-                    st.error(f"Erreur API: {exc.response.status_code} - {exc.response.text}")
+                    st.error(
+                        f"Erreur API: {exc.response.status_code} - {exc.response.text}"
+                    )
                 except Exception as exc:
                     logger.exception("Erreur création contrat")
                     st.error(f"Erreur création: {exc}")
         with col_action_2:
-            if st.button("Mettre à jour", use_container_width=True, disabled=mode != "Édition"):
-                original_id = st.session_state.get("contrat_edit_original_id") or payload["id_contrat"]
+            if st.button(
+                "Mettre à jour", use_container_width=True, disabled=mode != "Édition"
+            ):
+                original_id = (
+                    st.session_state.get("contrat_edit_original_id")
+                    or payload["id_contrat"]
+                )
                 payload_update = dict(payload)
                 payload_update["id_contrat"] = original_id
                 try:
@@ -337,7 +360,9 @@ def render() -> None:
                     st.session_state["contrat_edit_original_id"] = updated["id_contrat"]
                     st.success(f"Contrat mis à jour: {updated['id_contrat']}")
                 except requests.exceptions.HTTPError as exc:
-                    st.error(f"Erreur API: {exc.response.status_code} - {exc.response.text}")
+                    st.error(
+                        f"Erreur API: {exc.response.status_code} - {exc.response.text}"
+                    )
                 except Exception as exc:
                     logger.exception("Erreur mise à jour contrat")
                     st.error(f"Erreur mise à jour: {exc}")
@@ -353,8 +378,8 @@ def render() -> None:
             logger.exception("Erreur chargement contrats récents")
             st.error(f"Impossible de charger les contrats récents: {exc}")
 
-        #info_box("API Contrats", ENDPOINTS["contrats"], "Endpoint contrats")
-        #st.caption(f"API Endpoint: {ENDPOINTS['contrats']}")
+        # info_box("API Contrats", ENDPOINTS["contrats"], "Endpoint contrats")
+        # st.caption(f"API Endpoint: {ENDPOINTS['contrats']}")
     except Exception:
         logger.exception("Echec du rendu de la page contrat")
         st.error("Une erreur est survenue lors du chargement de la page contrat.")

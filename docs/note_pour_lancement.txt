@@ -156,3 +156,20 @@ API:
 
 streamlit run src/app/app.py
 streamlit run src/app/app.py
+
+
+
+bash lint_and_typecheck.sh
+
+
+uv run bash lint_and_typecheck.sh
+
+
+
+uv run pytest -q
+
+
+
+code de sortie du script lint pour confirmer que le job CI correspondant est bien passant.
+
+uv run bash lint_and_typecheck.sh >/tmp/lint_ci.log 2>&1; echo EXIT:$?; tail -n 8 /tmp/lint_ci.log

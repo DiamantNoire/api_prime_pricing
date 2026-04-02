@@ -4,9 +4,10 @@ Serveur FastAPI principal pour l'API Prime Pricing.
 Ce module instancie l'application FastAPI, inclut les routers principaux,
 et expose les endpoints racine, health et favicon.
 """
+
 # --*- coding: utf-8 -*-
 # =============================================
-#------ IMPORTATIONS DES LIBRAIRIES ----------#
+# ------ IMPORTATIONS DES LIBRAIRIES ----------#
 # =============================================
 
 from fastapi import FastAPI, Request
@@ -21,41 +22,35 @@ from src.api.backend.controllers.controller_frequence import router as frequence
 from src.api.backend.controllers.contrat_controller import contrat_router
 
 # =============================================
-#------ AJOUT DES ENDPOINTS ----------#
+# ------ AJOUT DES ENDPOINTS ----------#
 # =============================================
-app = FastAPI(
-    title="API Prime Pricing",
-    version="1.0.0"
-)
+app = FastAPI(title="API Prime Pricing", version="1.0.0")
 
 logger = get_logger("api_global")
+
 
 # Handler global pour toutes les exceptions
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception(f"Exception non gérée: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 # Handler pour les erreurs de validation (422)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.error(f"Erreur de validation 422: {exc}")
     return JSONResponse(
-        status_code=422,
-        content={"detail": exc.errors(), "body": exc.body}
+        status_code=422, content={"detail": exc.errors(), "body": exc.body}
     )
+
 
 # Handler pour les erreurs HTTP (ex: 404, 403...)
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     logger.error(f"Erreur HTTP {exc.status_code}: {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
 
 app.include_router(severite_router)
 app.include_router(frequence_router)
@@ -71,7 +66,6 @@ def read_root():
         dict: Message de statut de l'API.
     """
     return {"message": "API Prime Pricing is running"}
-
 
 
 @app.get("/health", summary="Healthcheck", tags=["monitoring"])
@@ -98,4 +92,5 @@ def favicon():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("src.api.backend.server:app", host="127.0.0.1", port=8000, reload=True)

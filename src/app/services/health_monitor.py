@@ -99,8 +99,14 @@ class HealthMonitor:
         except requests.exceptions.HTTPError as exc:
             status_code = exc.response.status_code if exc.response is not None else None
             if status_code == 429:
-                retry_after = exc.response.headers.get("Retry-After") if exc.response is not None else None
-                logger.warning("✗ API principale limitée (HTTP 429), retry_after=%s", retry_after)
+                retry_after = (
+                    exc.response.headers.get("Retry-After")
+                    if exc.response is not None
+                    else None
+                )
+                logger.warning(
+                    "✗ API principale limitée (HTTP 429), retry_after=%s", retry_after
+                )
                 return HealthStatus(
                     name="API Principale",
                     status="rate_limited",
@@ -129,14 +135,22 @@ class HealthMonitor:
                 details={"error": str(exc)},
             )
 
-    def _check_prediction_endpoint_health(self, endpoint_path: str, endpoint_name: str) -> HealthStatus:
+    def _check_prediction_endpoint_health(
+        self, endpoint_path: str, endpoint_name: str
+    ) -> HealthStatus:
         """Vérifie l'état d'un endpoint de santé lié aux prédictions."""
         try:
             url = f"{self.api_base_url}{endpoint_path}"
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
 
-            data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+            data = (
+                response.json()
+                if response.headers.get("content-type", "").startswith(
+                    "application/json"
+                )
+                else {}
+            )
             api_status = data.get("status")
 
             if api_status == "ok":
@@ -184,7 +198,11 @@ class HealthMonitor:
         except requests.exceptions.HTTPError as exc:
             status_code = exc.response.status_code if exc.response is not None else None
             if status_code == 429:
-                retry_after = exc.response.headers.get("Retry-After") if exc.response is not None else None
+                retry_after = (
+                    exc.response.headers.get("Retry-After")
+                    if exc.response is not None
+                    else None
+                )
                 return HealthStatus(
                     name=endpoint_name,
                     status="rate_limited",
@@ -236,7 +254,9 @@ class HealthMonitor:
         try:
             # Vérifier l'existence du fichier
             if not self.db_path.exists():
-                logger.warning(f"✗ Fichier de base de données non trouvé: {self.db_path}")
+                logger.warning(
+                    f"✗ Fichier de base de données non trouvé: {self.db_path}"
+                )
                 return HealthStatus(
                     name="Base de données",
                     status="error",
@@ -252,9 +272,7 @@ class HealthMonitor:
                 cursor = conn.cursor()
 
                 # Récupérer les tables
-                cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table';"
-                )
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
                 tables = [row[0] for row in cursor.fetchall()]
 
                 # Récupérer les statistiques
@@ -327,8 +345,6 @@ class HealthMonitor:
         healthy_count = sum(1 for s in statuses.values() if s.is_healthy())
         total_count = len(statuses)
 
-        logger.info(
-            f"Résumé santé: {healthy_count}/{total_count} services sains"
-        )
+        logger.info(f"Résumé santé: {healthy_count}/{total_count} services sains")
 
         return statuses

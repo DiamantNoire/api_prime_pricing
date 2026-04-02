@@ -1,5 +1,8 @@
 name: CI API Prime Pricing
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
@@ -33,7 +36,7 @@ jobs:
         run: ./lint_and_typecheck.sh
 
   tests:
-    name: Tests unitaires (pytest, unittest)
+    name: Tests unitaires (pytest)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -44,8 +47,6 @@ jobs:
         run: uv pip install -r requirements.txt
       - name: Lancer les tests pytest
         run: pytest
-      - name: Lancer les tests unittest
-        run: python -m unittest discover -s src/models/tests
 
   docker:
     name: Build & Test Docker
@@ -61,9 +62,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker image
-        run: docker-compose build
+        run: docker compose build
       - name: Lancer les services (api, init_db)
-        run: docker-compose up -d api init_db
+        run: docker compose up -d api init_db
       - name: Attendre que l'API soit prête
         run: |
           for i in {1..20}; do
@@ -72,14 +73,14 @@ jobs:
             fi
             sleep 2
           done
-          echo 'API DOWN'; docker-compose logs api; exit 1
+          echo 'API DOWN'; docker compose logs api; exit 1
       - name: Tester les endpoints FastAPI (curl)
         run: |
           curl -f http://localhost:8000/docs
           curl -f http://localhost:8000/openapi.json
       - name: Lancer les tests unitaires et le lint dans le conteneur test
-        run: docker-compose run --rm test
+        run: docker compose run --rm test
       - name: Afficher les logs API
-        run: docker-compose logs api
+        run: docker compose logs api
       - name: Arrêter les conteneurs
-        run: docker-compose down
+        run: docker compose down

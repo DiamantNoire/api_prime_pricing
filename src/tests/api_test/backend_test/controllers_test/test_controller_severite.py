@@ -58,19 +58,25 @@ def test_build_severite_model_success(monkeypatch):
     mock_model = MagicMock()
     mock_model.load_model.return_value = {"xgb_model_json": "ok"}
 
-    monkeypatch.setattr(controller_severite, "Model_Prediction_Severite", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_severite, "Model_Prediction_Severite", lambda: mock_model
+    )
     monkeypatch.setattr(controller_severite.os.path, "exists", lambda _: True)
 
     result = controller_severite._build_severite_model()
 
     assert result is mock_model
-    mock_model.load_model.assert_called_once_with(controller_severite.MODEL_SEVERITE_PATH)
+    mock_model.load_model.assert_called_once_with(
+        controller_severite.MODEL_SEVERITE_PATH
+    )
 
 
 def test_build_severite_model_missing_file(monkeypatch):
     mock_model = MagicMock()
 
-    monkeypatch.setattr(controller_severite, "Model_Prediction_Severite", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_severite, "Model_Prediction_Severite", lambda: mock_model
+    )
     monkeypatch.setattr(controller_severite.os.path, "exists", lambda _: False)
 
     with pytest.raises(controller_severite.HTTPException) as exc_info:
@@ -84,7 +90,9 @@ def test_build_severite_model_invalid_artifact(monkeypatch):
     mock_model = MagicMock()
     mock_model.load_model.return_value = {}
 
-    monkeypatch.setattr(controller_severite, "Model_Prediction_Severite", lambda: mock_model)
+    monkeypatch.setattr(
+        controller_severite, "Model_Prediction_Severite", lambda: mock_model
+    )
     monkeypatch.setattr(controller_severite.os.path, "exists", lambda _: True)
 
     with pytest.raises(controller_severite.HTTPException) as exc_info:
@@ -109,7 +117,9 @@ def test_health_predictio_severite_ok(client, monkeypatch):
 
 def test_health_predictio_severite_error(client, monkeypatch):
     monkeypatch.setattr(controller_severite, "SEVERITE_MODEL", None)
-    monkeypatch.setattr(controller_severite, "SEVERITE_MODEL_LOAD_ERROR", "modèle absent")
+    monkeypatch.setattr(
+        controller_severite, "SEVERITE_MODEL_LOAD_ERROR", "modèle absent"
+    )
     monkeypatch.setattr(controller_severite.os.path, "exists", lambda _: False)
 
     response = client.get("/predictio_severite/health")
@@ -139,7 +149,9 @@ def test_prediction_success(client, valid_payload, monkeypatch):
 
 def test_prediction_model_unavailable(client, valid_payload, monkeypatch):
     monkeypatch.setattr(controller_severite, "SEVERITE_MODEL", None)
-    monkeypatch.setattr(controller_severite, "SEVERITE_MODEL_LOAD_ERROR", "chargement impossible")
+    monkeypatch.setattr(
+        controller_severite, "SEVERITE_MODEL_LOAD_ERROR", "chargement impossible"
+    )
 
     response = client.post("/predict_severite", json=valid_payload)
 

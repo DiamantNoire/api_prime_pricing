@@ -1,4 +1,3 @@
-
 """
 Dashboard Streamlit pour la visualisation et la recherche de contrats d'assurance.
 
@@ -21,7 +20,7 @@ st.title("Dashboard Contrats")
 # --- Choix du mode ---
 mode = st.radio(
     "Choisir l'affichage",
-    ["Tous les contrats", "Par numéro de contrat", "Par type de contrat"]
+    ["Tous les contrats", "Par numéro de contrat", "Par type de contrat"],
 )
 
 # --- Tous les contrats ---

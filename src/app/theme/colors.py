@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 def get_color(status: str) -> str:
     """Récupère la couleur selon le statut.
-    
+
     Args:
         status: success | warning | danger | info | primary
-        
+
     Returns:
         Valeur hex de la couleur
     """

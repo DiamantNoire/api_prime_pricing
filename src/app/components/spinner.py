@@ -7,7 +7,7 @@ import streamlit as st
 
 def loading_spinner(text: str = "Chargement...") -> None:
     """Affiche un spinner de chargement.
-    
+
     Args:
         text: Texte à afficher
     """

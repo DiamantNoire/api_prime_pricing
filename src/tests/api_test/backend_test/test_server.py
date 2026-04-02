@@ -69,12 +69,24 @@ def test_main_calls_uvicorn_run(monkeypatch):
     fake_uvicorn = SimpleNamespace(run=fake_run)
 
     monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
-    monkeypatch.setitem(sys.modules, "src.api.backend.controllers.controller_severite", _make_router_module())
-    monkeypatch.setitem(sys.modules, "src.api.backend.controllers.controller_frequence", _make_router_module())
+    monkeypatch.setitem(
+        sys.modules,
+        "src.api.backend.controllers.controller_severite",
+        _make_router_module(),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "src.api.backend.controllers.controller_frequence",
+        _make_router_module(),
+    )
 
     fake_contrat_module = ModuleType("fake_contrat_module")
     fake_contrat_module.contrat_router = APIRouter()
-    monkeypatch.setitem(sys.modules, "src.api.backend.controllers.contrat_controller", fake_contrat_module)
+    monkeypatch.setitem(
+        sys.modules,
+        "src.api.backend.controllers.contrat_controller",
+        fake_contrat_module,
+    )
 
     runpy.run_path(str(ROOT / "src/api/backend/server.py"), run_name="__main__")
 

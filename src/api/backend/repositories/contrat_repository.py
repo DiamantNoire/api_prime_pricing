@@ -170,7 +170,9 @@ class ContratRepository:
             ).fetchone()
             return self._row_to_dict(row)
 
-    def update_by_id_contrat(self, id_contrat: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    def update_by_id_contrat(
+        self, id_contrat: str, payload: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Met à jour un contrat existant à partir de son id_contrat.
 
@@ -181,8 +183,12 @@ class ContratRepository:
         Returns:
             dict[str, Any] | None: Contrat mis à jour ou None si non trouvé.
         """
-        assignments = ", ".join([f"{col} = ?" for col in self.COLUMNS if col != "id_contrat"])
-        values = tuple(payload[col] for col in self.COLUMNS if col != "id_contrat") + (id_contrat,)
+        assignments = ", ".join(
+            [f"{col} = ?" for col in self.COLUMNS if col != "id_contrat"]
+        )
+        values = tuple(payload[col] for col in self.COLUMNS if col != "id_contrat") + (
+            id_contrat,
+        )
 
         with self._connect() as conn:
             if not self._table_exists(conn):
