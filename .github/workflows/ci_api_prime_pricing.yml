@@ -31,7 +31,7 @@ jobs:
       - name: Installer uv
         run: pip install uv
       - name: Installer les dépendances (prod + dev)
-        run: uv pip install -r requirements.txt
+        run: uv pip install --system -r requirements.txt
       - name: Format, Lint & Typecheck
         run: ./lint_and_typecheck.sh
 
@@ -44,7 +44,7 @@ jobs:
       - name: Installer uv
         run: pip install uv
       - name: Installer les dépendances (prod + dev)
-        run: uv pip install -r requirements.txt
+        run: uv pip install --system -r requirements.txt
       - name: Lancer les tests pytest
         run: pytest
 
