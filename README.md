@@ -1,153 +1,159 @@
 # API Prime Pricing
 
-Projet de prediction de prime auto avec pipeline ML et API FastAPI.
+Projet de prediction de prime auto base sur deux modeles ML (frequence et severite), exposes via une API FastAPI et une application Streamlit.
 
-## Contenu du repo
+## Architecture
 
-- `src/models/`: entrainement des modeles, feature engineering et fusion des predictions.
-- `src/api/backend/`: API FastAPI publiee pour la prediction.
-- `src/api/frontend/`: interface Streamlit locale.
-- `output_models/`: artefacts JSON publies avec l'API.
-- `db/`: base SQLite locale.
+- App Streamlit: interface web utilisateur pour la simulation et la consultation des predictions
+- API FastAPI: endpoints d'inference et de healthcheck
+- Modeles ML: entrainement frequence/severite et fusion de la prime
+- Artefacts modeles: modeles exportes utilises par l'API en inference
+- Base de donnees: stockage SQLite local
 
-## Endpoints principaux
+Correspondance des dossiers:
 
-- `GET /health`: healthcheck global.
-- `GET /predictio_frequence/health`: verifie que le modele frequence est charge.
-- `POST /predict_frequence`: calcule la prediction frequence sur un JSON unitaire.
-- `GET /predictio_severite/health`: verifie que le modele severite est charge.
-- `POST /predict_severite`: calcule la prediction severite sur un JSON unitaire.
-- `POST /predict_price`: calcule une prime simple avec `frequence * severite`.
+- `src/app/`: application Streamlit principale
+- `src/api/backend/`: API FastAPI
+- `src/models/`: pipeline et scripts ML
+- `output_models/modeles/`: artefacts JSON des modeles
+- `db/`: base SQLite locale
 
-## Demarrage local
+## URLs de production
+
+- API FastAPI: https://api-prime-pricing.onrender.com
+- App Streamlit: https://api-prime-pricing-app-cas.onrender.com
+
+## Endpoints API principaux
+
+- `GET /`
+- `GET /health`
+- `GET /predictio_frequence/health`
+- `GET /predictio_severite/health`
+- `POST /predict_frequence`
+- `POST /predict_severite`
+- `POST /predict_price`
+- `GET /contrats?limit=20`
+- `GET /contrats/{id_contrat}`
+- `POST /contrats`
+- `PUT /contrats/{id_contrat}`
+- Documentation OpenAPI: `/docs`
+
+## Installation locale (uv recommande)
+
+Prerequis:
+
+- Python 3.11+
+- `uv` installe (`pip install uv`)
+
+Setup:
 
 ```bash
-python -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
+```
+
+Lancer l'API:
+
+```bash
 uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
 ```
 
-## CI/CD Pipeline
+Lancer l'application Streamlit locale (front principal):
 
-Le projet inclut un pipeline CI/CD complet sur GitHub Actions :
+```bash
+streamlit run src/app/app.py --server.address=0.0.0.0 --server.port=8501
+```
 
-### CI (Continuous Integration)
-Déclenché sur push/pull request sur les branches :
-- Lint/Format : `black --check`, `ruff`, `flake8`, `pylint`
-- Typecheck : `ty` 
-- Tests : `pytest` + `unittest`
-- Docker : build et test complet des services
+## Qualite et tests
 
-### CD (Continuous Deployment)
-Déclenché automatiquement **après succès de la CI sur main** :
-- Déploiement API FastAPI sur Render (`api_prime_pricing`)
-- Déploiement App Streamlit sur Render (`api_prime_pricing_app`)
+Lancer le controle qualite local:
 
-Voir les workflows sur https://github.com/DiamantNoire/api_prime_pricing/actions
+```bash
+bash lint_and_typecheck.sh
+```
+
+Lancer les tests:
+
+```bash
+pytest
+```
+
+## CI/CD GitHub Actions
+
+### CI
+
+Workflow: `CI API Prime Pricing`
+
+- Format/lint: black, ruff, flake8, pylint
+- Tests: pytest
+- Validation Docker: build + smoke test des endpoints
+
+### CD
+
+Workflow: `CD API Prime Pricing`
+
+- Declenchement automatique si la CI est `success` sur `main`
+- Appel des deux deploy hooks Render:
+  - `api_prime_pricing`
+  - `api_prime_pricing_app`
+
+Actions: https://github.com/DiamantNoire/api_prime_pricing/actions
 
 ## Deploiement Render
 
-Le backend est prepare pour Render:
+Points importants:
 
-- chemins de modeles resolves avec `Path`, sans chemin local `/home/...`
-- chargement des modeles au startup FastAPI
-- commande de demarrage compatible `PORT`
-- configuration prete dans `render.yaml`
+- Les deux services doivent pointer sur la branche `main`
+- Le service API est configure en mode Docker (voir `render.yaml`)
+- Lancement API via le `CMD` du `Dockerfile`
 
-### Build command
+Les deploiements sont automatises via GitHub Actions CD (deploy hooks).
+
+## Exemples rapides (API)
+
+Health:
 
 ```bash
-pip install -r requirements.txt
+curl -s https://api-prime-pricing.onrender.com/health
+curl -s https://api-prime-pricing.onrender.com/predictio_frequence/health
+curl -s https://api-prime-pricing.onrender.com/predictio_severite/health
 ```
 
-### Start command
+Prediction frequence:
 
 ```bash
-uvicorn src.api.backend.server:app --host 0.0.0.0 --port $PORT
-```
+JSON_FREQUENCE='{"bonus":0.42,"type_contrat":"Mini","duree_contrat":6,"anciennete_info":3,"freq_paiement":"Quarterly","paiement":"Yes","utilisation":"Professional","code_postal":"75015","conducteur2":"No","age_conducteur1":31,"sex_conducteur1":"M","anciennete_permis1":12,"anciennete_vehicule":2.1,"cylindre_vehicule":1498,"din_vehicule":110,"essence_vehicule":"Hybrid","marque_vehicule":"TOYOTA","modele_vehicule":"YARIS","vitesse_vehicule":180,"type_vehicule":"Tourism","prix_vehicule":24500,"poids_vehicule":1200}'
 
-### Creation du service
-
-1. Pousser la branche de deploiement sur GitHub.
-2. Creer un `Web Service` Python sur Render.
-3. Renseigner le build command et le start command ci-dessus.
-4. Verifier que `output_models/modeles/model_frequence.json` et `output_models/modeles/model_severite.json` sont bien presents dans le repo distant.
-
-## Tests API
-
-### Local
-
-```bash
-curl -s http://127.0.0.1:8000/health
-curl -s http://127.0.0.1:8000/predictio_frequence/health
-curl -s http://127.0.0.1:8000/predictio_severite/health
-```
-
-### Render
-
-```bash
-curl -s https://your-api.onrender.com/health
-curl -s https://your-api.onrender.com/predictio_frequence/health
-curl -s https://your-api.onrender.com/predictio_severite/health
-```
-
-### POST sur les deux endpoints avec un JSON complet
-
-```bash
-JSON='{"bonus":0.33,"type_contrat":"Mini","duree_contrat":6,"anciennete_info":3,"freq_paiement":"Quarterly","paiement":"Yes","utilisation":"Professional","code_postal":"75119","conducteur2":"Yes","age_conducteur1":29,"age_conducteur2":27,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":11,"anciennete_permis2":8,"anciennete_vehicule":1.7,"cylindre_vehicule":1598,"din_vehicule":132,"essence_vehicule":"Hybrid","marque_vehicule":"TOYOTA","modele_vehicule":"COROLLA","debut_vente_vehicule":2020,"fin_vente_vehicule":2024,"vitesse_vehicule":205,"type_vehicule":"SUV","prix_vehicule":28990,"poids_vehicule":1425}'
-
-curl -s -X POST http://127.0.0.1:8000/predict_frequence -H "Content-Type: application/json" -d "$JSON"
-curl -s -X POST http://127.0.0.1:8000/predict_severite -H "Content-Type: application/json" -d "$JSON"
-curl -s -X POST http://127.0.0.1:8000/predict_price -H "Content-Type: application/json" -d "$JSON"
-```
-
-### POST Render
-
-```bash
-curl -s -X POST https://your-api.onrender.com/predict_frequence -H "Content-Type: application/json" -d "$JSON"
-curl -s -X POST https://your-api.onrender.com/predict_severite -H "Content-Type: application/json" -d "$JSON"
-curl -s -X POST https://your-api.onrender.com/predict_price -H "Content-Type: application/json" -d "$JSON"
-```
-
-## 5 payloads aleatoires (hors base) + commandes POST (severite)
-
-### Payload 1
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/predict_severite \
+curl -s -X POST https://api-prime-pricing.onrender.com/predict_frequence \
   -H "Content-Type: application/json" \
-  -d '{"bonus":0.27,"type_contrat":"Mini","duree_contrat":4,"anciennete_info":2,"freq_paiement":"Quarterly","paiement":"Yes","utilisation":"Professional","code_postal":"69008","conducteur2":"Yes","age_conducteur1":31,"age_conducteur2":29,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":12,"anciennete_permis2":9,"anciennete_vehicule":2.4,"cylindre_vehicule":1499,"din_vehicule":125,"essence_vehicule":"Hybrid","marque_vehicule":"TOYOTA","modele_vehicule":"C-HR","debut_vente_vehicule":2019,"fin_vente_vehicule":2024,"vitesse_vehicule":198,"type_vehicule":"SUV","prix_vehicule":31500,"poids_vehicule":1460}'
+  -d "$JSON_FREQUENCE"
 ```
 
-### Payload 2
+Prediction severite:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/predict_severite \
+JSON_SEVERITE='{"bonus":0.61,"type_contrat":"Median1","duree_contrat":12,"anciennete_info":5,"freq_paiement":"Monthly","paiement":"Yes","utilisation":"WorkPrivate","code_postal":"69003","conducteur2":"Yes","age_conducteur1":45,"age_conducteur2":41,"sex_conducteur1":"F","sex_conducteur2":"M","anciennete_permis1":25,"anciennete_permis2":20,"anciennete_vehicule":4.5,"cylindre_vehicule":1598,"din_vehicule":130,"essence_vehicule":"Diesel","marque_vehicule":"PEUGEOT","modele_vehicule":"3008","vitesse_vehicule":195,"type_vehicule":"Tourism","prix_vehicule":32900,"poids_vehicule":1520}'
+
+curl -s -X POST https://api-prime-pricing.onrender.com/predict_severite \
   -H "Content-Type: application/json" \
-  -d '{"bonus":0.81,"type_contrat":"Maxi","duree_contrat":1,"anciennete_info":8,"freq_paiement":"Yearly","paiement":"No","utilisation":"Retired","code_postal":"13012","conducteur2":"No","age_conducteur1":68,"age_conducteur2":0,"sex_conducteur1":"F","sex_conducteur2":null,"anciennete_permis1":44,"anciennete_permis2":0,"anciennete_vehicule":12.8,"cylindre_vehicule":1198,"din_vehicule":82,"essence_vehicule":"Gasoline","marque_vehicule":"PEUGEOT","modele_vehicule":"208","debut_vente_vehicule":2014,"fin_vente_vehicule":2019,"vitesse_vehicule":172,"type_vehicule":"Tourism","prix_vehicule":13890,"poids_vehicule":1025}'
+  -d "$JSON_SEVERITE"
 ```
 
-### Payload 3
+Prediction prime (frequence x severite):
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/predict_severite \
+curl -s -X POST https://api-prime-pricing.onrender.com/predict_price \
   -H "Content-Type: application/json" \
-  -d '{"bonus":0.46,"type_contrat":"Medium","duree_contrat":10,"anciennete_info":5,"freq_paiement":"Monthly","paiement":"Yes","utilisation":"Commuting","code_postal":"31000","conducteur2":"Yes","age_conducteur1":42,"age_conducteur2":40,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":22,"anciennete_permis2":19,"anciennete_vehicule":4.1,"cylindre_vehicule":1997,"din_vehicule":184,"essence_vehicule":"Diesel","marque_vehicule":"BMW","modele_vehicule":"320D","debut_vente_vehicule":2018,"fin_vente_vehicule":2023,"vitesse_vehicule":232,"type_vehicule":"Sedan","prix_vehicule":42100,"poids_vehicule":1655}'
+  -d "$JSON_SEVERITE"
 ```
 
-### Payload 4
+Creation d'un contrat (endpoint `POST /contrats`):
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/predict_severite \
-  -H "Content-Type: application/json" \
-  -d '{"bonus":0.12,"type_contrat":"Mini","duree_contrat":2,"anciennete_info":1,"freq_paiement":"Monthly","paiement":"Yes","utilisation":"Urban","code_postal":"75019","conducteur2":"No","age_conducteur1":24,"age_conducteur2":0,"sex_conducteur1":"F","sex_conducteur2":null,"anciennete_permis1":4,"anciennete_permis2":0,"anciennete_vehicule":0.9,"cylindre_vehicule":998,"din_vehicule":70,"essence_vehicule":"Electric","marque_vehicule":"RENAULT","modele_vehicule":"ZOE","debut_vente_vehicule":2021,"fin_vente_vehicule":2025,"vitesse_vehicule":140,"type_vehicule":"City","prix_vehicule":26900,"poids_vehicule":1502}'
-```
+JSON_CONTRAT='{"id_client":"cli_001","id_vehicule":"veh_001","id_contrat":"ctr_001","bonus":0.58,"type_contrat":"Median1","duree_contrat":12,"anciennete_info":4,"freq_paiement":"Monthly","paiement":"Yes","utilisation":"WorkPrivate","code_postal":"69003","conducteur2":"Yes","age_conducteur1":40,"age_conducteur2":37,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":22,"anciennete_permis2":19,"anciennete_vehicule":3.5,"cylindre_vehicule":1598,"din_vehicule":120,"essence_vehicule":"Gasoline","marque_vehicule":"RENAULT","modele_vehicule":"MEGANE","debut_vente_vehicule":2,"fin_vente_vehicule":8,"vitesse_vehicule":190,"type_vehicule":"Tourism","prix_vehicule":27900,"poids_vehicule":1350,"nombre_sinistres":0,"montant_sinistre":0.0}'
 
-### Payload 5
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/predict_severite \
+curl -s -X POST https://api-prime-pricing.onrender.com/contrats \
   -H "Content-Type: application/json" \
-  -d '{"bonus":0.63,"type_contrat":"Maxi","duree_contrat":7,"anciennete_info":6,"freq_paiement":"HalfYearly","paiement":"No","utilisation":"Family","code_postal":"44000","conducteur2":"Yes","age_conducteur1":53,"age_conducteur2":50,"sex_conducteur1":"M","sex_conducteur2":"F","anciennete_permis1":31,"anciennete_permis2":28,"anciennete_vehicule":7.3,"cylindre_vehicule":1595,"din_vehicule":150,"essence_vehicule":"Gasoline","marque_vehicule":"VOLKSWAGEN","modele_vehicule":"TIGUAN","debut_vente_vehicule":2017,"fin_vente_vehicule":2024,"vitesse_vehicule":210,"type_vehicule":"SUV","prix_vehicule":38900,"poids_vehicule":1710}'
+  -d "$JSON_CONTRAT"
 ```
