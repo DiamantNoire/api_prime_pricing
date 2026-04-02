@@ -11,6 +11,7 @@
 # 1- IMPORTATIONS DES LIBRAIRIES | MODULES
 # ===============================================================
 import sys 
+import uvicorn
 from src.models.fonctions_utiles import Data_Base_Creator
 
 # ===============================================================
@@ -24,6 +25,7 @@ from src.models.fonctions_utiles import Data_Base_Creator
 def init_db():
     db = Data_Base_Creator()
     db.create_database()
+    db.create_table_log_api()
 
 def fill_historique():
     db = Data_Base_Creator()
@@ -38,7 +40,6 @@ def fill_predictions():
     )
 
 def run_api():
-    import uvicorn
     uvicorn.run("src.api.backend.server:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":

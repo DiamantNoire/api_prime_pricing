@@ -1193,7 +1193,6 @@ class Data_Base_Creator:
 
     def create_table_historique_contrats(self, csv_path: str):
         """Créer une table historique_contrats à partir du train.csv avec gestion d'erreur."""
-        import pandas as pd
         try:
             df = pd.read_csv(csv_path)
             conn = sqlite3.connect(self.db_path)
@@ -1205,7 +1204,6 @@ class Data_Base_Creator:
 
     def create_table_predictions(self, path_pred_frequence: str, path_pred_severite: str, path_pred_prime: str):
         """Créer une table predictions à partir des fichiers de prédiction, avec gestion d'erreur."""
-        import pandas as pd
         try:
             df_freq = pd.read_csv(path_pred_frequence)
             df_sev = pd.read_csv(path_pred_severite)
@@ -1223,3 +1221,24 @@ class Data_Base_Creator:
             LOGGER.info("Table predictions creee a partir des fichiers de prediction")
         except Exception as e:
             LOGGER.exception("Erreur lors de la creation de la table predictions")
+
+    def create_table_log_api(self):
+        """Créer une table log_api pour stocker les logs d'API dans la base de données."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS log_api (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    level TEXT NOT NULL,
+                    logger_name TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    exception TEXT
+                )
+            ''')
+            conn.commit()
+            conn.close()
+            LOGGER.info("Table log_api créée ou déjà existante.")
+        except Exception as e:
+            LOGGER.exception("Erreur lors de la création de la table log_api")
