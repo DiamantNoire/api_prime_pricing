@@ -28,6 +28,24 @@ pip install -r requirements.txt
 uvicorn src.api.backend.server:app --host 0.0.0.0 --port 8000
 ```
 
+## CI/CD Pipeline
+
+Le projet inclut un pipeline CI/CD complet sur GitHub Actions :
+
+### CI (Continuous Integration)
+Déclenché sur push/pull request sur les branches :
+- Lint/Format : `black --check`, `ruff`, `flake8`, `pylint`
+- Typecheck : `ty` 
+- Tests : `pytest` + `unittest`
+- Docker : build et test complet des services
+
+### CD (Continuous Deployment)
+Déclenché automatiquement **après succès de la CI sur main** :
+- Déploiement API FastAPI sur Render (`api_prime_pricing`)
+- Déploiement App Streamlit sur Render (`api_prime_pricing_app`)
+
+Voir les workflows sur https://github.com/DiamantNoire/api_prime_pricing/actions
+
 ## Deploiement Render
 
 Le backend est prepare pour Render:
