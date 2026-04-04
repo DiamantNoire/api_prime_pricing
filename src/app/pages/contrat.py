@@ -106,16 +106,16 @@ def _generate_auto_contract_fields() -> dict:
 
 def _init_state() -> None:
     manual_defaults = {
-        "id_client": _random_id("CLI"),
-        "id_vehicule": _random_id("VEH"),
-        "id_contrat": _random_id("CTR"),
+        "id_client": _random_id("A0000000X-VXX"),
+        "id_vehicule": _random_id("VXX"),
+        "id_contrat": _random_id("A0000000X"),
         "age_conducteur1": 35,
         "anciennete_permis1": 10,
         "sex_conducteur1": FIELD_OPTIONS["sex_conducteur1"][0],
         "essence_vehicule": FIELD_OPTIONS["essence_vehicule"][0],
         "type_vehicule": FIELD_OPTIONS["type_vehicule"][0],
         "cylindre_vehicule": 1600,
-        "prix_vehicule": 20_000,
+        "prix_vehicule": 20000,
     }
     auto_defaults = _generate_auto_contract_fields()
 

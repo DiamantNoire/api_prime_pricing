@@ -53,8 +53,8 @@ except Exception:
 # Map menu selection to page routing
 page_mapping = {
     "Tableau de bord": "dashboard",
-    "Compose Contrat": "contrat",
-    "Compose Inference": "inference",
+    "Contrat": "contrat",
+    "Inference": "inference",
 }
 
 if selected_page and selected_page in page_mapping:
