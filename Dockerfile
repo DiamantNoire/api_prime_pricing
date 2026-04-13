@@ -3,20 +3,20 @@
 # ===============================
 FROM python:3.11-slim AS base
 
-# Définir le répertoire de travail
+# Répertoire de travail
 WORKDIR /app
 
-# Installer uv (gestionnaire de paquets rapide)
+# Installation uv (gestionnaire de paquets rapide)
 RUN pip install --no-cache-dir uv
 
-# Copier et installer les dépendances
+# Copie et installation des dépendances
 COPY requirements.txt ./
 RUN uv pip install --system -r requirements.txt
 
-# Copier tout le code source
+# Copie de tout le code source
 COPY . .
 
-# Exposer le port de l'API
+# Exposition du port de l'API
 EXPOSE 8000
 
 # Commande de lancement — PORT injecté par Render (défaut 8000 en local)

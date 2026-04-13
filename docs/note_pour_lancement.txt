@@ -1,37 +1,6 @@
-
-
-
-Remarques et bonnes pratiques
-- N'ajoute pas de gros fichiers binaires dans le dépôt (utilise un stockage externe ou Git LFS si nécessaire).
-- Garde `.code-workspace` dans `.gitignore` (déjà configuré dans ce projet), ne le commite pas.
-- Pour éviter les pertes : fais des commits atomiques et pushes fréquents.
-- En cas de conflit lors du merge/rebase, résous localement puis `git add` + `git rebase --continue` ou `git commit` selon la stratégie.
-
-
 # créer et activer un virtualenv
 python -m venv .venv
 source .venv/bin/activate
-
-
-Remarques et bonnes pratiques
-- N'ajoute pas de gros fichiers binaires dans le dépôt (utilise un stockage externe ou Git LFS si nécessaire).
-- Garde `.code-workspace` dans `.gitignore` (déjà configuré dans ce projet), ne le commite pas.
-- Pour éviter les pertes : fais des commits atomiques et pushes fréquents.
-- En cas de conflit lors du merge/rebase, résous localement puis `git add` + `git rebase --continue` ou `git commit` selon la stratégie.
-
-
-
-
-
-
-sudo chown -R cytech:cytech "/data/ECOLE/COURS_ECOLE/COURS/2025-2026/S1/UE Maths et Info/Data Science/v1/.git"
-git pull origin dev_charly --no-rebase
-
-git push origin dev_charly
-
-
-
-
 
 uv sync --project ..
 uv run --project .. streamlit run app.py
@@ -39,12 +8,6 @@ uv run --project .. streamlit run app.py --server.port 8501
 
 
 source .venv/bin/activate
-
-chmod -R u+rwx .venv
-
-
-source .venv/bin/activate
-
 
 uv venv
 

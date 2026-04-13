@@ -8,6 +8,9 @@
 .venv/
 __pycache__/
 *.pyc
+.flake8
+.pylintrc
+.uv.lock
 
 # accidental scratch file
 =2.0
@@ -21,3 +24,4 @@ output_models/modeles/*.pickle
 output_models/modeles/*_v1.json
 output_models/modeles/*_v1.pickle
 output_models/modeles/*_v1.csv
+
