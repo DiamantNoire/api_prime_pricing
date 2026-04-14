@@ -7,19 +7,11 @@ on:
   push:
     branches:
       - main
-      - dev_log_api_process
-      - dev_render_published_api
-      - dev_test
-      - dev_test_validation
-      - dev_user_application
+
   pull_request:
     branches:
       - main
-      - dev_log_api_process
-      - dev_render_published_api
-      - dev_test
-      - dev_test_validation
-      - dev_user_application
+
 
 jobs:
   lint-typecheck:
